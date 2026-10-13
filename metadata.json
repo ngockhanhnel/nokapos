@@ -1,0 +1,6 @@
+{
+  "name": "DuckPOS Pro - Quản Lý Bán Hàng Vịt Quay",
+  "description": "Hệ thống POS bán hàng và quản trị kinh doanh chuyên nghiệp cho quán vịt quay. Hỗ trợ bán theo con/kg, tạo VietQR động, in bill nhiệt 80mm/58mm, quản lý kho và dòng tiền.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

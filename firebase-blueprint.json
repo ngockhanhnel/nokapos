@@ -1,0 +1,240 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and active shop association",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "currentShopId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["email", "createdAt"]
+    },
+    "Shop": {
+      "title": "Shop",
+      "description": "Roasted duck store settings and payment information",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 100 },
+        "phone": { "type": "string", "maxLength": 20 },
+        "address": { "type": "string", "maxLength": 200 },
+        "ownerId": { "type": "string" },
+        "bankName": { "type": "string", "maxLength": 50 },
+        "bankAccountNumber": { "type": "string", "maxLength": 30 },
+        "bankAccountName": { "type": "string", "maxLength": 100 },
+        "receiptNote": { "type": "string", "maxLength": 200 },
+        "currency": { "type": "string", "maxLength": 10 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "ownerId", "createdAt"]
+    },
+    "ShopMember": {
+      "title": "ShopMember",
+      "description": "Membership mapping user to shop with RBAC role",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["owner", "manager", "cashier"] },
+        "joinedAt": { "type": "string" }
+      },
+      "required": ["userId", "email", "role", "joinedAt"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Product item sold in roasted duck restaurant",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 100 },
+        "code": { "type": "string", "maxLength": 30 },
+        "category": { "type": "string", "maxLength": 50 },
+        "unit": { "type": "string", "enum": ["con", "nua_con", "goc_tu", "kg", "phan", "chiec", "dia", "chai", "lon"] },
+        "price": { "type": "number" },
+        "costPrice": { "type": "number" },
+        "stockQuantity": { "type": "number" },
+        "minStockAlert": { "type": "number" },
+        "isAvailable": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "category", "unit", "price", "isAvailable", "createdAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order created at POS counter",
+      "type": "object",
+      "properties": {
+        "orderCode": { "type": "string", "maxLength": 50 },
+        "shiftId": { "type": "string" },
+        "subtotal": { "type": "number" },
+        "discount": { "type": "number" },
+        "finalTotal": { "type": "number" },
+        "paymentMethod": { "type": "string", "enum": ["cash", "transfer"] },
+        "paymentStatus": { "type": "string", "enum": ["paid", "pending", "failed"] },
+        "status": { "type": "string", "enum": ["completed", "cancelled", "refunded"] },
+        "cashierId": { "type": "string" },
+        "cashierName": { "type": "string", "maxLength": 100 },
+        "customerCash": { "type": "number" },
+        "changeCash": { "type": "number" },
+        "cancellationReason": { "type": "string", "maxLength": 300 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["orderCode", "finalTotal", "paymentMethod", "paymentStatus", "status", "cashierId", "createdAt"]
+    },
+    "Shift": {
+      "title": "Shift",
+      "description": "Cashier shift record and cash drawer balance reconciliation",
+      "type": "object",
+      "properties": {
+        "shiftCode": { "type": "string", "maxLength": 50 },
+        "cashierId": { "type": "string" },
+        "cashierName": { "type": "string", "maxLength": 100 },
+        "startTime": { "type": "string" },
+        "endTime": { "type": "string" },
+        "initialCash": { "type": "number" },
+        "totalCashSales": { "type": "number" },
+        "totalTransferSales": { "type": "number" },
+        "totalSales": { "type": "number" },
+        "ordersCount": { "type": "number" },
+        "actualCashCounted": { "type": "number" },
+        "discrepancy": { "type": "number" },
+        "status": { "type": "string", "enum": ["open", "closed"] },
+        "note": { "type": "string", "maxLength": 300 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["shiftCode", "cashierId", "startTime", "initialCash", "status", "createdAt"]
+    },
+    "InventoryMovement": {
+      "title": "InventoryMovement",
+      "description": "Inventory stock ledger movement",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string" },
+        "productName": { "type": "string", "maxLength": 100 },
+        "type": { "type": "string", "enum": ["in", "out", "adjust", "sale"] },
+        "quantity": { "type": "number" },
+        "reason": { "type": "string", "maxLength": 200 },
+        "performedBy": { "type": "string", "maxLength": 100 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["productId", "type", "quantity", "createdAt"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Operating and raw material cost transaction",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 120 },
+        "category": { "type": "string", "enum": ["raw_material", "utilities", "salary", "packaging", "other"] },
+        "amount": { "type": "number" },
+        "date": { "type": "string" },
+        "performedBy": { "type": "string", "maxLength": 100 },
+        "note": { "type": "string", "maxLength": 300 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["title", "category", "amount", "date", "createdAt"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Audit trail of critical administrative and cashier operations",
+      "type": "object",
+      "properties": {
+        "action": { "type": "string", "maxLength": 50 },
+        "actorId": { "type": "string" },
+        "actorEmail": { "type": "string" },
+        "details": { "type": "string", "maxLength": 500 },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["action", "actorId", "timestamp"]
+    },
+    "SepayTransaction": {
+      "title": "SepayTransaction",
+      "description": "Auto-bank transfer transaction log received via SePay Webhook",
+      "type": "object",
+      "properties": {
+        "gateway": { "type": "string", "maxLength": 50 },
+        "transactionDate": { "type": "string" },
+        "accountNumber": { "type": "string", "maxLength": 30 },
+        "content": { "type": "string", "maxLength": 300 },
+        "transferType": { "type": "string", "enum": ["in", "out"] },
+        "transferAmount": { "type": "number" },
+        "accumulated": { "type": "number" },
+        "referenceCode": { "type": "string", "maxLength": 100 },
+        "matchedOrderCode": { "type": "string", "maxLength": 50 },
+        "matchedOrderId": { "type": "string" },
+        "status": { "type": "string", "enum": ["matched", "unmatched", "ignored"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["gateway", "accountNumber", "transferAmount", "createdAt"]
+    },
+    "PreOrder": {
+      "title": "PreOrder",
+      "description": "Customer pre-order reservation with delivery schedule, reminders, and POS linkage",
+      "type": "object",
+      "properties": {
+        "orderCode": { "type": "string", "maxLength": 50 },
+        "customerName": { "type": "string", "maxLength": 100 },
+        "customerPhone": { "type": "string", "maxLength": 20 },
+        "customerAddress": { "type": "string", "maxLength": 250 },
+        "deliveryDate": { "type": "string", "maxLength": 20 },
+        "deliveryTime": { "type": "string", "maxLength": 10 },
+        "totalAmount": { "type": "number" },
+        "depositAmount": { "type": "number" },
+        "remainingAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "preparing", "ready", "completed", "cancelled"] },
+        "orderType": { "type": "string", "enum": ["takeaway", "delivery", "dine_in", "party"] },
+        "notes": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["orderCode", "customerName", "customerPhone", "deliveryDate", "deliveryTime", "totalAmount", "status", "orderType", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile documents"
+    },
+    "/shops/{shopId}": {
+      "schema": "Shop",
+      "description": "Store entity documents"
+    },
+    "/shops/{shopId}/members/{userId}": {
+      "schema": "ShopMember",
+      "description": "Members and permissions of the store"
+    },
+    "/shops/{shopId}/products/{productId}": {
+      "schema": "Product",
+      "description": "Products sold by the store"
+    },
+    "/shops/{shopId}/orders/{orderId}": {
+      "schema": "Order",
+      "description": "POS orders and transactions of the store"
+    },
+    "/shops/{shopId}/shifts/{shiftId}": {
+      "schema": "Shift",
+      "description": "Cashier shifts and cash reconciliation"
+    },
+    "/shops/{shopId}/inventoryMovements/{movementId}": {
+      "schema": "InventoryMovement",
+      "description": "Inventory movement log of the store"
+    },
+    "/shops/{shopId}/expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "Expenses and cost log of the store"
+    },
+    "/shops/{shopId}/auditLogs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Audit logs of the store"
+    },
+    "/shops/{shopId}/sepayTransactions/{txId}": {
+      "schema": "SepayTransaction",
+      "description": "Bank transfer transactions received from SePay webhook"
+    },
+    "/shops/{shopId}/preOrders/{preOrderId}": {
+      "schema": "PreOrder",
+      "description": "Customer pre-orders, scheduled reservations and advance notifications"
+    }
+  }
+}

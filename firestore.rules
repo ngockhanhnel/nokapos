@@ -1,0 +1,138 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwnerOfUser(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isShopOwnerByDoc(shopId) {
+      return isSignedIn() && exists(/databases/$(database)/documents/shops/$(shopId)) && get(/databases/$(database)/documents/shops/$(shopId)).data.ownerId == request.auth.uid;
+    }
+
+    function isShopMember(shopId) {
+      return isSignedIn() && exists(/databases/$(database)/documents/shops/$(shopId)/members/$(request.auth.uid));
+    }
+
+    function getShopMember(shopId) {
+      return get(/databases/$(database)/documents/shops/$(shopId)/members/$(request.auth.uid)).data;
+    }
+
+    function isShopOwner(shopId) {
+      return isShopOwnerByDoc(shopId) || (isShopMember(shopId) && getShopMember(shopId).role == 'owner');
+    }
+
+    function isShopManagerOrOwner(shopId) {
+      return isShopOwner(shopId) || (isShopMember(shopId) && (getShopMember(shopId).role == 'manager' || getShopMember(shopId).role == 'owner'));
+    }
+
+    // Test connection document
+    match /test/{testId} {
+      allow read: if true;
+    }
+
+    // User profile documents
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || exists(/databases/$(database)/documents/users/$(request.auth.uid)));
+      allow create, update: if isOwnerOfUser(userId);
+    }
+
+    // Stores / Shops
+    match /shops/{shopId} {
+      // Members or the shop owner can read the shop document
+      allow read: if isShopOwnerByDoc(shopId) || isShopMember(shopId);
+      // Any authenticated user can create a new shop with themselves as ownerId
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      // Only owner can update shop settings
+      allow update: if isShopOwner(shopId);
+
+      // Members subcollection
+      match /members/{memberId} {
+        allow read: if isShopOwnerByDoc(shopId) || isShopMember(shopId) || (isSignedIn() && request.auth.uid == memberId);
+        allow create: if isShopOwnerByDoc(shopId) || (isSignedIn() && request.auth.uid == memberId && request.resource.data.role == 'owner' && request.resource.data.userId == request.auth.uid);
+        allow update, delete: if isShopOwner(shopId);
+      }
+
+      // Products subcollection
+      match /products/{productId} {
+        allow read: if isShopMember(shopId) || isShopOwnerByDoc(shopId);
+        allow create, update, delete: if isShopManagerOrOwner(shopId);
+      }
+
+      // Orders subcollection
+      match /orders/{orderId} {
+        allow read: if isShopMember(shopId) || isShopOwnerByDoc(shopId);
+        allow create, update: if isShopMember(shopId) || isShopOwnerByDoc(shopId);
+      }
+
+      // Shifts subcollection
+      match /shifts/{shiftId} {
+        allow read: if isShopMember(shopId) || isShopOwnerByDoc(shopId);
+        allow create: if isShopMember(shopId) || isShopOwnerByDoc(shopId);
+        allow update: if isShopMember(shopId) || isShopOwnerByDoc(shopId);
+      }
+
+      // Inventory movements subcollection
+      match /inventoryMovements/{movementId} {
+        allow read: if isShopMember(shopId) || isShopOwnerByDoc(shopId);
+        allow create: if isShopMember(shopId) || isShopOwnerByDoc(shopId);
+      }
+
+      // Expenses subcollection (Only manager & owner can access expenses)
+      match /expenses/{expenseId} {
+        allow read, create, update, delete: if isShopManagerOrOwner(shopId);
+      }
+
+      // Audit logs subcollection
+      match /auditLogs/{logId} {
+        allow read: if isShopManagerOrOwner(shopId);
+        allow create: if isShopMember(shopId) || isShopOwnerByDoc(shopId);
+      }
+
+      // SePay Autobank transactions subcollection
+      match /sepayTransactions/{txId} {
+        allow read, create, update: if isShopMember(shopId) || isShopOwnerByDoc(shopId);
+      }
+
+      // Branches subcollection
+      match /branches/{branchId} {
+        allow read: if isShopMember(shopId) || isShopOwnerByDoc(shopId);
+        allow create, update, delete: if isShopManagerOrOwner(shopId);
+      }
+
+      // Suppliers subcollection
+      match /suppliers/{supplierId} {
+        allow read: if isShopMember(shopId) || isShopOwnerByDoc(shopId);
+        allow create, update, delete: if isShopManagerOrOwner(shopId);
+      }
+
+      // Purchase Invoices subcollection
+      match /purchaseInvoices/{invoiceId} {
+        allow read: if isShopMember(shopId) || isShopOwnerByDoc(shopId);
+        allow create, update, delete: if isShopManagerOrOwner(shopId);
+      }
+
+      // Customers subcollection (All shop members can read, create, and update; delete restricted to manager/owner)
+      match /customers/{customerId} {
+        allow read: if isShopMember(shopId) || isShopOwnerByDoc(shopId);
+        allow create, update: if isShopMember(shopId) || isShopOwnerByDoc(shopId);
+        allow delete: if isShopManagerOrOwner(shopId);
+      }
+
+      // Pre-Orders subcollection (Đặt hàng trước)
+      match /preOrders/{preOrderId} {
+        allow read: if isShopMember(shopId) || isShopOwnerByDoc(shopId);
+        allow create, update, delete: if isShopMember(shopId) || isShopOwnerByDoc(shopId);
+      }
+    }
+  }
+}

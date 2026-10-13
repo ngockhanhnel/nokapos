@@ -1,0 +1,21 @@
+{
+  "name": "DuckPOS Pro - Quán Vịt Quay",
+  "short_name": "DuckPOS",
+  "description": "Hệ thống POS bán hàng và quản trị cho quán vịt quay",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#7f1d1d",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%237f1d1d'/><text x='50' y='65' font-size='50' text-anchor='middle'>🦆</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%237f1d1d'/><text x='50' y='65' font-size='50' text-anchor='middle'>🦆</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

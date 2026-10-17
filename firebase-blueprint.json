@@ -189,6 +189,73 @@
         "updatedAt": { "type": "string" }
       },
       "required": ["orderCode", "customerName", "customerPhone", "deliveryDate", "deliveryTime", "totalAmount", "status", "orderType", "createdAt"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Store customer CRM profile and points",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 100 },
+        "phone": { "type": "string", "maxLength": 20 },
+        "tier": { "type": "string", "enum": ["retail", "wholesale", "vip"] },
+        "totalSpent": { "type": "number" },
+        "loyaltyPoints": { "type": "number" },
+        "debt": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "phone", "tier", "createdAt"]
+    },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "Raw duck meat and ingredients supplier",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 100 },
+        "phone": { "type": "string", "maxLength": 20 },
+        "debt": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "phone", "createdAt"]
+    },
+    "PurchaseInvoice": {
+      "title": "PurchaseInvoice",
+      "description": "Supplier purchase invoices for ducks and ingredients",
+      "type": "object",
+      "properties": {
+        "supplierId": { "type": "string" },
+        "supplierName": { "type": "string", "maxLength": 100 },
+        "totalAmount": { "type": "number" },
+        "paidAmount": { "type": "number" },
+        "debtAmount": { "type": "number" },
+        "date": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["supplierId", "supplierName", "totalAmount", "date", "createdAt"]
+    },
+    "Branch": {
+      "title": "Branch",
+      "description": "Store chain branches and locations",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 100 },
+        "phone": { "type": "string", "maxLength": 20 },
+        "address": { "type": "string", "maxLength": 200 },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "status", "createdAt"]
+    },
+    "ShopSecret": {
+      "title": "ShopSecret",
+      "description": "Isolated confidential keys and tokens (Telegram Bot, SePay API Key)",
+      "type": "object",
+      "properties": {
+        "telegramBotToken": { "type": "string" },
+        "telegramChatId": { "type": "string" },
+        "sepayApiKey": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["updatedAt"]
     }
   },
   "firestore": {
@@ -232,9 +299,29 @@
       "schema": "SepayTransaction",
       "description": "Bank transfer transactions received from SePay webhook"
     },
+    "/shops/{shopId}/branches/{branchId}": {
+      "schema": "Branch",
+      "description": "Store chain branches and location points"
+    },
+    "/shops/{shopId}/suppliers/{supplierId}": {
+      "schema": "Supplier",
+      "description": "Suppliers of ducks, charcoal, packaging and ingredients"
+    },
+    "/shops/{shopId}/purchaseInvoices/{invoiceId}": {
+      "schema": "PurchaseInvoice",
+      "description": "Supplier purchase invoices"
+    },
+    "/shops/{shopId}/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "CRM customer profiles and points"
+    },
     "/shops/{shopId}/preOrders/{preOrderId}": {
       "schema": "PreOrder",
       "description": "Customer pre-orders, scheduled reservations and advance notifications"
+    },
+    "/shops/{shopId}/secrets/{secretId}": {
+      "schema": "ShopSecret",
+      "description": "Confidential isolated credentials restricted to owner only"
     }
   }
 }

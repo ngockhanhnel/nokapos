@@ -133,6 +133,12 @@ service cloud.firestore {
         allow read: if isShopMember(shopId) || isShopOwnerByDoc(shopId);
         allow create, update, delete: if isShopMember(shopId) || isShopOwnerByDoc(shopId);
       }
+
+      // Secrets subcollection (Sensitive credentials: Telegram Bot Token, SePay API Key)
+      // Strictly restricted to shop owner; cashiers and regular staff cannot access
+      match /secrets/{secretId} {
+        allow read, write: if isShopOwner(shopId);
+      }
     }
   }
 }

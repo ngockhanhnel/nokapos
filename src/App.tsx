@@ -3,7 +3,8 @@ import { AuthProvider, useAuth } from '@/src/context/AuthContext';
 import { Navbar } from '@/src/components/Navbar';
 import { Sidebar } from '@/src/components/Sidebar';
 import { MobileNav } from '@/src/components/MobileNav';
-import { OnboardingModal } from '@/src/components/OnboardingModal';
+import { EmptyShopView } from '@/src/components/EmptyShopView';
+import { performFullMemoryCleanup } from '@/src/lib/cacheManager';
 import { AuthView } from '@/src/views/AuthView';
 import { DashboardView } from '@/src/views/DashboardView';
 import { PosView } from '@/src/views/PosView';
@@ -58,6 +59,11 @@ const MainApp: React.FC = () => {
       window.removeEventListener('storage', updateCount);
     };
   }, []);
+
+  // Automated memory & listener cleanup when switching between complex views
+  useEffect(() => {
+    performFullMemoryCleanup(currentView);
+  }, [currentView]);
 
   // Listen for products for inventory alert checks
   useEffect(() => {
@@ -200,9 +206,9 @@ const MainApp: React.FC = () => {
     return <AuthView />;
   }
 
-  // If user has no shop yet, show onboarding store setup modal
+  // If user has no shop yet, show professional empty shop onboarding view
   if (!currentShop) {
-    return <OnboardingModal />;
+    return <EmptyShopView />;
   }
 
   // DEDICATED FULL-SCREEN POS KIOSK TERMINAL (No Mobile Bottom Nav, No generic header overlap)

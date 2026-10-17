@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/src/context/AuthContext';
-import { doc, updateDoc, collection, getDocs, writeBatch } from 'firebase/firestore';
+import { doc, updateDoc, collection, getDocs, writeBatch, setDoc } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
 import { VIETNAMESE_BANKS, getVietQRUrl } from '@/src/lib/formatters';
 import { TelegramService } from '@/src/lib/telegramService';
 import { TelegramConfig, TelegramCustomReminder, SepayConfig, Product, LoginSession } from '@/src/types';
+import {
+  performFullMemoryCleanup,
+  getStorageDiagnostics,
+  cleanupStaleLocalStorage,
+  CacheCleanupResult,
+} from '@/src/lib/cacheManager';
 import {
   Settings,
   Store,
@@ -37,6 +43,12 @@ import {
   Smartphone,
   Globe,
   Lock,
+  CheckCircle2,
+  Download,
+  Zap,
+  RefreshCcw,
+  Database,
+  HardDrive,
 } from 'lucide-react';
 
 export const SettingsView: React.FC = () => {

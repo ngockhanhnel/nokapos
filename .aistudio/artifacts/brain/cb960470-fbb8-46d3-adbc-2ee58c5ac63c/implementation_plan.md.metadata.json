@@ -1,6 +1,6 @@
 {
-  "summary": "Kế hoạch triển khai toàn diện Phân hệ Đặt hàng trước (Pre-Orders) từ khách hàng, hỗ trợ đặt tiệc, hẹn ngày/tháng/năm và giờ giao nhận, cấu hình thông báo chuông và Telegram tự động trước giờ hẹn kèm tùy chỉnh chu kỳ lặp lại, liên kết 1 chạm với màn hình bán hàng POS.",
-  "updatedAt": "2026-10-13T12:29:30.558948959Z",
-  "requestFeedback": true,
-  "userFacing": true
+  "summary":  "Plan for redesigning DuckPOS Pro with a warm theme and enhancing AI assistant capabilities for POS, inventory, finance, and staff management.",
+  "updatedAt":  "2026-10-22T09:54:59.245997654Z",
+  "requestFeedback":  true,
+  "userFacing":  true
 }

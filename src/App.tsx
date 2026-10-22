@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from '@/src/context/AuthContext';
+import { ThemeProvider } from '@/src/context/ThemeContext';
 import { Navbar } from '@/src/components/Navbar';
 import { Sidebar } from '@/src/components/Sidebar';
 import { MobileNav } from '@/src/components/MobileNav';
@@ -31,6 +32,7 @@ import { Product, Shift, HoldOrder, Order, PreOrder } from '@/src/types';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
 import { Loader2 } from 'lucide-react';
+import { ChatView } from '@/src/views/ChatView';
 
 const MainApp: React.FC = () => {
   const { user, currentShop, loading } = useAuth();
@@ -230,7 +232,7 @@ const MainApp: React.FC = () => {
 
   // STANDARD MANAGEMENT & BACKOFFICE LAYOUT
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col font-sans relative">
       <Navbar
         currentView={currentView}
         onNavigate={setCurrentView}
@@ -246,6 +248,7 @@ const MainApp: React.FC = () => {
 
         <main className="flex-1 flex flex-col overflow-y-auto pb-16 lg:pb-0">
           {currentView === 'dashboard' && <DashboardView onNavigate={setCurrentView} />}
+          {currentView === 'chat' && <ChatView onNavigate={setCurrentView} />}
           {currentView === 'notifications' && (
             <NotificationsView onNavigateToView={setCurrentView} />
           )}
@@ -288,7 +291,9 @@ const MainApp: React.FC = () => {
 export default function App() {
   return (
     <AuthProvider>
-      <MainApp />
+      <ThemeProvider>
+        <MainApp />
+      </ThemeProvider>
     </AuthProvider>
   );
 }

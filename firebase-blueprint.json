@@ -256,6 +256,39 @@
         "updatedAt": { "type": "string" }
       },
       "required": ["updatedAt"]
+    },
+    "StockAudit": {
+      "title": "StockAudit",
+      "description": "Inventory audit and discrepancy balancing",
+      "type": "object",
+      "properties": {
+        "auditCode": { "type": "string" },
+        "creatorId": { "type": "string" },
+        "creatorName": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "balanced", "cancelled"] },
+        "totalSystemQty": { "type": "number" },
+        "totalActualQty": { "type": "number" },
+        "totalDiffQty": { "type": "number" },
+        "totalDiffValue": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["auditCode", "status", "createdAt"]
+    },
+    "CashTransaction": {
+      "title": "CashTransaction",
+      "description": "Cashbook receipt and payment record",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "type": { "type": "string", "enum": ["receipt", "payment"] },
+        "category": { "type": "string" },
+        "amount": { "type": "number" },
+        "paymentMethod": { "type": "string", "enum": ["cash", "transfer"] },
+        "date": { "type": "string" },
+        "recipientOrPayer": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["code", "type", "amount", "createdAt"]
     }
   },
   "firestore": {
@@ -322,6 +355,14 @@
     "/shops/{shopId}/secrets/{secretId}": {
       "schema": "ShopSecret",
       "description": "Confidential isolated credentials restricted to owner only"
+    },
+    "/shops/{shopId}/stockAudits/{auditId}": {
+      "schema": "StockAudit",
+      "description": "Inventory stock reconciliation and audits"
+    },
+    "/shops/{shopId}/cashTransactions/{txId}": {
+      "schema": "CashTransaction",
+      "description": "Cashbook receipts and payment vouchers"
     }
   }
 }

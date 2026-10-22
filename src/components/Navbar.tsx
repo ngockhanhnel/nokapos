@@ -60,7 +60,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, unreadC
     <header className="h-16 bg-neutral-900/95 backdrop-blur border-b border-neutral-800 px-4 lg:px-6 flex items-center justify-between sticky top-0 z-30 shrink-0">
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-lg bg-red-900/80 border border-red-700/60 flex items-center justify-center text-amber-400 font-bold shadow-sm">
+          <div className="w-9 h-9 rounded-lg bg-primary/90 border border-primary/60 flex items-center justify-center text-secondary font-bold shadow-sm">
             🦆
           </div>
           <div>
@@ -81,12 +81,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, unreadC
             onClick={() => onNavigate('notifications')}
             className={`p-2 rounded-xl border transition-colors relative ${
               currentView === 'notifications'
-                ? 'bg-amber-500/20 border-amber-500 text-amber-300'
+                ? 'bg-secondary/20 border-secondary text-secondary'
                 : 'bg-neutral-800/80 hover:bg-neutral-800 border-neutral-700 text-neutral-300 hover:text-white'
             }`}
             title="Trung tâm thông báo & Nhắc việc"
           >
-            <Bell className="w-4 h-4 text-amber-400" />
+            <Bell className="w-4 h-4 text-secondary" />
             {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-xs">
                 {unreadCount > 9 ? '9+' : unreadCount}

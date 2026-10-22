@@ -134,6 +134,20 @@ service cloud.firestore {
         allow create, update, delete: if isShopMember(shopId) || isShopOwnerByDoc(shopId);
       }
 
+      // Stock Audits subcollection (Kiểm kho)
+      match /stockAudits/{auditId} {
+        allow read: if isShopMember(shopId) || isShopOwnerByDoc(shopId);
+        allow create, update: if isShopManagerOrOwner(shopId);
+        allow delete: if isShopOwner(shopId);
+      }
+
+      // Cash Transactions subcollection (Sổ quỹ Thu - Chi)
+      match /cashTransactions/{txId} {
+        allow read: if isShopMember(shopId) || isShopOwnerByDoc(shopId);
+        allow create, update: if isShopMember(shopId) || isShopOwnerByDoc(shopId);
+        allow delete: if isShopManagerOrOwner(shopId);
+      }
+
       // Secrets subcollection (Sensitive credentials: Telegram Bot Token, SePay API Key)
       // Strictly restricted to shop owner; cashiers and regular staff cannot access
       match /secrets/{secretId} {

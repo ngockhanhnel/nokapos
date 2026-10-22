@@ -4,7 +4,7 @@ import { doc, updateDoc, collection, getDocs, writeBatch, setDoc } from 'firebas
 import { db } from '@/src/lib/firebase';
 import { VIETNAMESE_BANKS, getVietQRUrl } from '@/src/lib/formatters';
 import { TelegramService } from '@/src/lib/telegramService';
-import { TelegramConfig, TelegramCustomReminder, SepayConfig, Product, LoginSession } from '@/src/types';
+import { TelegramConfig, TelegramCustomReminder, SepayConfig, Product, LoginSession, EnterpriseSettings, BrandConfig } from '@/src/types';
 import {
   performFullMemoryCleanup,
   getStorageDiagnostics,
@@ -49,11 +49,64 @@ import {
   RefreshCcw,
   Database,
   HardDrive,
+  ChevronRight,
+  Sliders,
+  Tag,
+  Barcode,
+  PackageCheck,
 } from 'lucide-react';
 
 export const SettingsView: React.FC = () => {
   const { currentShop, reloadShopData, userRole, user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'shop' | 'telegram' | 'sepay' | 'pricing' | 'security'>('shop');
+  const [activeTab, setActiveTab] = useState<'shop' | 'enterprise' | 'telegram' | 'sepay' | 'pricing' | 'security' | 'brand'>('brand');
+
+  // Enterprise KiotViet-style Settings State
+  const [enableBarcode, setEnableBarcode] = useState(currentShop?.enterpriseSettings?.enableBarcode ?? true);
+  const [autoSuggestInfo, setAutoSuggestInfo] = useState(currentShop?.enterpriseSettings?.autoSuggestInfo ?? true);
+  const [costMethod, setCostMethod] = useState<'fixed' | 'average'>(currentShop?.enterpriseSettings?.costMethod || 'average');
+  const [enableBatchTracking, setEnableBatchTracking] = useState(currentShop?.enterpriseSettings?.enableBatchTracking ?? true);
+  const [enableManufacturing, setEnableManufacturing] = useState(currentShop?.enterpriseSettings?.enableManufacturing ?? false);
+  const [enableCategoryRBAC, setEnableCategoryRBAC] = useState(currentShop?.enterpriseSettings?.enableCategoryRBAC ?? true);
+  const [allowChangeTransactionTime, setAllowChangeTransactionTime] = useState(currentShop?.enterpriseSettings?.allowChangeTransactionTime ?? true);
+  const [brandConfig, setBrandConfig] = useState<BrandConfig>(currentShop?.brandConfig || {
+    primaryColor: '#B91C1C',
+    secondaryColor: '#F59E0B',
+    logoUrl: '',
+    fontFamily: 'Plus Jakarta Sans',
+  });
+
+  // Lists for attributes, units, categories, brands, locations
+  const [unitsList, setUnitsList] = useState<string[]>(
+    currentShop?.enterpriseSettings?.unitsList || [
+      'Chiếc', 'Cái', 'Lon', 'Chai', 'Hộp', 'Lốc', 'Thùng', 'Gói', 'Kg', 'Gram', 'Phần', 'Đĩa', 'Bao', 'Bộ'
+    ]
+  );
+  const [categoriesList, setCategoriesList] = useState<string[]>(
+    currentShop?.enterpriseSettings?.categoriesList || [
+      'Đồ ăn', 'Đồ uống', 'Gia vị', 'Bia & Nước ngọt', 'Hàng tiêu dùng', 'Bánh kẹo', 'Thực phẩm khô'
+    ]
+  );
+  const [brandsList, setBrandsList] = useState<string[]>(
+    currentShop?.enterpriseSettings?.brandsList || [
+      'Heineken', 'Coca-Cola', 'Pepsi', 'Masan', 'Vinamilk', 'Acecook', 'Hảo Hảo'
+    ]
+  );
+  const [locationsList, setLocationsList] = useState<string[]>(
+    currentShop?.enterpriseSettings?.locationsList || [
+      'Kệ A1 - Tầng 1', 'Kệ B2 - Tầng 1', 'Tủ đông 1', 'Tủ mát quầy bar', 'Kho phụ'
+    ]
+  );
+  const [attributesList, setAttributesList] = useState<{ name: string; values: string[] }[]>(
+    currentShop?.enterpriseSettings?.attributesList || [
+      { name: 'Kích cỡ', values: ['S', 'M', 'L', 'XL'] },
+      { name: 'Màu sắc', values: ['Đỏ', 'Xanh', 'Vàng', 'Trắng', 'Đen'] },
+      { name: 'Chất liệu', values: ['Cotton', 'Nhựa cao cấp', 'Inox'] },
+    ]
+  );
+
+  // Modal for managing lists
+  const [manageListModal, setManageListModal] = useState<'units' | 'categories' | 'brands' | 'locations' | 'attributes' | null>(null);
+  const [newListItemInput, setNewListItemInput] = useState('');
 
   // Shop basic info
   const [name, setName] = useState(currentShop?.name || '');
@@ -312,6 +365,21 @@ export const SettingsView: React.FC = () => {
         autoPrintReceipt,
       };
 
+      const enterpriseSettings: EnterpriseSettings = {
+        enableBarcode,
+        autoSuggestInfo,
+        unitsList,
+        categoriesList,
+        brandsList,
+        locationsList,
+        attributesList,
+        costMethod,
+        enableBatchTracking,
+        enableManufacturing,
+        enableCategoryRBAC,
+        allowChangeTransactionTime,
+      };
+
       const shopRef = doc(db, 'shops', currentShop.id);
       await updateDoc(shopRef, {
         name: name.trim(),
@@ -323,6 +391,8 @@ export const SettingsView: React.FC = () => {
         receiptNote: receiptNote.trim(),
         telegramConfig,
         sepayConfig,
+        enterpriseSettings,
+        brandConfig,
         updatedAt: new Date().toISOString(),
       });
 
@@ -488,8 +558,20 @@ export const SettingsView: React.FC = () => {
         <div className="flex items-center gap-1.5 bg-neutral-900 border border-neutral-800 p-1 rounded-xl text-xs font-semibold overflow-x-auto">
           <button
             type="button"
+            onClick={() => setActiveTab('enterprise')}
+            className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              activeTab === 'enterprise'
+                ? 'bg-red-800 text-white shadow-xs'
+                : 'text-neutral-400 hover:text-white'
+            }`}
+          >
+            <Sliders className="w-3.5 h-3.5 text-amber-400" />
+            <span>Thiết lập Hàng hóa & Kho</span>
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveTab('shop')}
-            className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shrink-0 ${
+            className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
               activeTab === 'shop'
                 ? 'bg-red-800 text-white shadow-xs'
                 : 'text-neutral-400 hover:text-white'
@@ -546,6 +628,18 @@ export const SettingsView: React.FC = () => {
             <Shield className="w-3.5 h-3.5 text-purple-400" />
             <span>Bảo mật & Phiên</span>
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('brand')}
+            className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shrink-0 ${
+              activeTab === 'brand'
+                ? 'bg-red-800 text-white shadow-xs'
+                : 'text-neutral-400 hover:text-white'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span>Tùy chỉnh Thương hiệu</span>
+          </button>
         </div>
       </div>
 
@@ -566,6 +660,367 @@ export const SettingsView: React.FC = () => {
         <div className="p-3 rounded-xl bg-blue-950/80 border border-blue-800 text-blue-200 text-xs flex items-center gap-2">
           <Send className="w-4 h-4 text-blue-400 shrink-0" />
           <span>{reminderActionFeedback}</span>
+        </div>
+      )}
+
+      {/* TAB 0: ENTERPRISE SETTINGS (KIOTVIET SPEC) */}
+      {activeTab === 'enterprise' && (
+        <div className="space-y-6 max-w-5xl">
+          {/* Card 1: Thông tin hàng hóa */}
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-6">
+            <div className="border-b border-neutral-800 pb-3 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <PackageCheck className="w-4 h-4 text-amber-500" />
+                  Thông tin hàng hóa
+                </h3>
+                <p className="text-xs text-neutral-400 mt-0.5">
+                  Quản lý mã vạch, tự động nhận diện và cấu trúc thuộc tính danh mục hàng hóa
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {/* Toggle: Mã vạch */}
+              <div className="flex items-center justify-between p-3.5 bg-neutral-950 rounded-xl border border-neutral-850">
+                <div className="space-y-0.5 max-w-xl">
+                  <div className="flex items-center gap-2">
+                    <Barcode className="w-4 h-4 text-neutral-300" />
+                    <span className="text-xs font-bold text-white">Mã vạch</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-400">
+                    Sử dụng mã vạch để quản lý hàng hóa, tự động tạo mã vạch và hỗ trợ quét mã vạch bán hàng nhanh
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={enableBarcode}
+                    onChange={(e) => setEnableBarcode(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-neutral-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                </label>
+              </div>
+
+              {/* Toggle: Tự động gợi ý thông tin */}
+              <div className="flex items-center justify-between p-3.5 bg-neutral-950 rounded-xl border border-neutral-850">
+                <div className="space-y-0.5 max-w-xl">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-neutral-300" />
+                    <span className="text-xs font-bold text-white">Tự động gợi ý thông tin</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-400">
+                    Tự động gợi ý tên hàng, phân loại, thương hiệu theo thư viện chuẩn ngành bán lẻ
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={autoSuggestInfo}
+                    onChange={(e) => setAutoSuggestInfo(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-neutral-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                </label>
+              </div>
+
+              {/* Drill-down list 1: Đơn vị tính */}
+              <div
+                onClick={() => setManageListModal('units')}
+                className="flex items-center justify-between p-3.5 bg-neutral-950 hover:bg-neutral-850/60 rounded-xl border border-neutral-850 transition-colors cursor-pointer group"
+              >
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-neutral-300" />
+                    <span className="text-xs font-bold text-white">Đơn vị tính</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-400">
+                    Hỗ trợ đơn vị cơ bản và đơn vị quy đổi (VD: Thùng, Lon, Lốc, Chai, Gói, Kg...)
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-amber-400 font-mono bg-amber-950/60 px-2.5 py-1 rounded-lg border border-amber-800">
+                    {unitsList.length} đơn vị tính
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-neutral-500 group-hover:text-white transition-colors" />
+                </div>
+              </div>
+
+              {/* Drill-down list 2: Thuộc tính */}
+              <div
+                onClick={() => setManageListModal('attributes')}
+                className="flex items-center justify-between p-3.5 bg-neutral-950 hover:bg-neutral-850/60 rounded-xl border border-neutral-850 transition-colors cursor-pointer group"
+              >
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <Tag className="w-4 h-4 text-neutral-300" />
+                    <span className="text-xs font-bold text-white">Thuộc tính</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-400">
+                    Thuộc tính linh hoạt (Kích cỡ, Màu sắc, Chất liệu, Hương vị...)
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-neutral-300 font-mono bg-neutral-800 px-2.5 py-1 rounded-lg border border-neutral-700">
+                    {attributesList.length} nhóm thuộc tính
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-neutral-500 group-hover:text-white transition-colors" />
+                </div>
+              </div>
+
+              {/* Drill-down list 3: Nhóm hàng */}
+              <div
+                onClick={() => setManageListModal('categories')}
+                className="flex items-center justify-between p-3.5 bg-neutral-950 hover:bg-neutral-850/60 rounded-xl border border-neutral-850 transition-colors cursor-pointer group"
+              >
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <Sliders className="w-4 h-4 text-neutral-300" />
+                    <span className="text-xs font-bold text-white">Nhóm hàng</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-400">
+                    Danh mục phân nhóm sản phẩm giúp quản lý và lọc báo cáo doanh thu trực quan
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-neutral-300 font-mono bg-neutral-800 px-2.5 py-1 rounded-lg border border-neutral-700">
+                    {categoriesList.length} nhóm hàng
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-neutral-500 group-hover:text-white transition-colors" />
+                </div>
+              </div>
+
+              {/* Drill-down list 4: Thương hiệu */}
+              <div
+                onClick={() => setManageListModal('brands')}
+                className="flex items-center justify-between p-3.5 bg-neutral-950 hover:bg-neutral-850/60 rounded-xl border border-neutral-850 transition-colors cursor-pointer group"
+              >
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <Store className="w-4 h-4 text-neutral-300" />
+                    <span className="text-xs font-bold text-white">Thương hiệu</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-400">
+                    Nhãn hiệu nhà sản xuất cung ứng sản phẩm
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-neutral-300 font-mono bg-neutral-800 px-2.5 py-1 rounded-lg border border-neutral-700">
+                    {brandsList.length} thương hiệu
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-neutral-500 group-hover:text-white transition-colors" />
+                </div>
+              </div>
+
+              {/* Drill-down list 5: Vị trí */}
+              <div
+                onClick={() => setManageListModal('locations')}
+                className="flex items-center justify-between p-3.5 bg-neutral-950 hover:bg-neutral-850/60 rounded-xl border border-neutral-850 transition-colors cursor-pointer group"
+              >
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-neutral-300" />
+                    <span className="text-xs font-bold text-white">Vị trí</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-400">
+                    Vị trí lưu kho, kệ hàng, tủ đông giúp nhân viên lấy hàng và kiểm kê nhanh
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-neutral-300 font-mono bg-neutral-800 px-2.5 py-1 rounded-lg border border-neutral-700">
+                    {locationsList.length} vị trí
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-neutral-500 group-hover:text-white transition-colors" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Giá vốn, tồn kho & Sản xuất */}
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-6">
+            <div className="border-b border-neutral-800 pb-3">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Database className="w-4 h-4 text-emerald-400" />
+                Giá vốn, tồn kho & Sản xuất
+              </h3>
+              <p className="text-xs text-neutral-400 mt-0.5">
+                Thiết lập phương pháp kế toán giá vốn, theo dõi hạn dùng và sản xuất thành phẩm
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {/* Costing Method Radio Selection */}
+              <div className="p-4 bg-neutral-950 rounded-xl border border-neutral-850 space-y-3">
+                <label className="block text-xs font-bold text-white">Phương pháp tính giá vốn</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <label
+                    className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                      costMethod === 'average'
+                        ? 'bg-amber-950/40 border-amber-600/70 text-white shadow-xs'
+                        : 'bg-neutral-900/60 border-neutral-800 text-neutral-300 hover:border-neutral-700'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="costMethod"
+                      value="average"
+                      checked={costMethod === 'average'}
+                      onChange={() => setCostMethod('average')}
+                      className="mt-0.5 text-amber-500 focus:ring-amber-500"
+                    />
+                    <div className="space-y-1">
+                      <div className="text-xs font-bold flex items-center gap-2">
+                        <span>Giá vốn trung bình</span>
+                        <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.2 rounded font-semibold">Khuyên dùng</span>
+                      </div>
+                      <p className="text-[11px] text-neutral-400 leading-relaxed">
+                        Tự động tính bình quân gia quyền theo mỗi lần nhập kho. Phản ánh chính xác lợi nhuận thực tế.
+                      </p>
+                    </div>
+                  </label>
+
+                  <label
+                    className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                      costMethod === 'fixed'
+                        ? 'bg-amber-950/40 border-amber-600/70 text-white shadow-xs'
+                        : 'bg-neutral-900/60 border-neutral-800 text-neutral-300 hover:border-neutral-700'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="costMethod"
+                      value="fixed"
+                      checked={costMethod === 'fixed'}
+                      onChange={() => setCostMethod('fixed')}
+                      className="mt-0.5 text-amber-500 focus:ring-amber-500"
+                    />
+                    <div className="space-y-1">
+                      <span className="text-xs font-bold">Giá vốn cố định</span>
+                      <p className="text-[11px] text-neutral-400 leading-relaxed">
+                        Giá vốn không đổi theo các lần nhập hàng, thiết lập và cập nhật thủ công bởi chủ cửa hàng.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Toggle: Lô và hạn sử dụng */}
+              <div className="flex items-center justify-between p-3.5 bg-neutral-950 rounded-xl border border-neutral-850">
+                <div className="space-y-0.5 max-w-xl">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-neutral-300" />
+                    <span className="text-xs font-bold text-white">Quản lý tồn kho theo Lô, Hạn sử dụng</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-400">
+                    Theo dõi số lô và hạn dùng; ưu tiên xuất bán hàng cận date trước (FEFO) và cảnh báo sản phẩm sắp hết hạn
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={enableBatchTracking}
+                    onChange={(e) => setEnableBatchTracking(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-neutral-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                </label>
+              </div>
+
+              {/* Toggle: Sản xuất hàng hóa (BOM) */}
+              <div className="flex items-center justify-between p-3.5 bg-neutral-950 rounded-xl border border-neutral-850">
+                <div className="space-y-0.5 max-w-xl">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-neutral-300" />
+                    <span className="text-xs font-bold text-white">Sản xuất hàng hóa (BOM)</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-400">
+                    Khai báo công thức định lượng nguyên vật liệu cấu thành sản phẩm và tự động trừ kho nguyên liệu khi bán thành phẩm
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={enableManufacturing}
+                    onChange={(e) => setEnableManufacturing(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-neutral-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Người dùng & Khác */}
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-6">
+            <div className="border-b border-neutral-800 pb-3">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Shield className="w-4 h-4 text-blue-400" />
+                Người dùng & Giao dịch
+              </h3>
+              <p className="text-xs text-neutral-400 mt-0.5">
+                Chính sách phân quyền theo mặt hàng và quy tắc ghi nhận giao dịch bán lẻ
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {/* Toggle: Phân quyền theo nhóm hàng */}
+              <div className="flex items-center justify-between p-3.5 bg-neutral-950 rounded-xl border border-neutral-850">
+                <div className="space-y-0.5 max-w-xl">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-neutral-300" />
+                    <span className="text-xs font-bold text-white">Phân quyền theo nhóm hàng</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-400">
+                    Nhân viên bán hàng chỉ được xem và giao dịch trên các nhóm mặt hàng được phân quyền quản lý
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={enableCategoryRBAC}
+                    onChange={(e) => setEnableCategoryRBAC(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-neutral-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                </label>
+              </div>
+
+              {/* Toggle: Cho phép thay đổi thời gian giao dịch */}
+              <div className="flex items-center justify-between p-3.5 bg-neutral-950 rounded-xl border border-neutral-850">
+                <div className="space-y-0.5 max-w-xl">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-neutral-300" />
+                    <span className="text-xs font-bold text-white">Cho phép thay đổi thời gian giao dịch</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-400">
+                    Cho phép thu ngân hoặc quản trị viên chỉnh sửa ngày giờ phát sinh giao dịch trên hóa đơn và phiếu kho
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={allowChangeTransactionTime}
+                    onChange={(e) => setAllowChangeTransactionTime(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-neutral-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                </label>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-neutral-800 flex justify-end">
+              <button
+                type="button"
+                onClick={() => handleSaveSettings()}
+                disabled={saving}
+                className="bg-amber-600 hover:bg-amber-500 text-neutral-950 font-bold px-6 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-md cursor-pointer"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                <span>Lưu thiết lập Hàng hóa & Kho</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1149,6 +1604,73 @@ export const SettingsView: React.FC = () => {
         </div>
       )}
 
+      {/* TAB BRAND CUSTOMIZATION */}
+      {activeTab === 'brand' && (
+        <div className="space-y-6 max-w-4xl">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-4">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2 border-b border-neutral-800 pb-3">
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              Tùy chỉnh Thương hiệu DuckPOS Pro
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-neutral-300 mb-1">Màu chủ đạo (Primary)</label>
+                <input
+                  type="color"
+                  value={brandConfig.primaryColor}
+                  onChange={(e) => setBrandConfig(prev => ({ ...prev, primaryColor: e.target.value }))}
+                  className="w-full h-10 bg-neutral-950 border border-neutral-800 rounded-xl px-2 cursor-pointer"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-neutral-300 mb-1">Màu phụ (Secondary)</label>
+                <input
+                  type="color"
+                  value={brandConfig.secondaryColor}
+                  onChange={(e) => setBrandConfig(prev => ({ ...prev, secondaryColor: e.target.value }))}
+                  className="w-full h-10 bg-neutral-950 border border-neutral-800 rounded-xl px-2 cursor-pointer"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold text-neutral-300 mb-1">URL Logo</label>
+                <input
+                  type="text"
+                  value={brandConfig.logoUrl}
+                  onChange={(e) => setBrandConfig(prev => ({ ...prev, logoUrl: e.target.value }))}
+                  placeholder="https://..."
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-hidden focus:border-amber-500"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold text-neutral-300 mb-1">Font chữ</label>
+                <select
+                  value={brandConfig.fontFamily}
+                  onChange={(e) => setBrandConfig(prev => ({ ...prev, fontFamily: e.target.value }))}
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-hidden focus:border-amber-500"
+                >
+                  <option value="Plus Jakarta Sans">Plus Jakarta Sans</option>
+                  <option value="Inter">Inter</option>
+                  <option value="Roboto">Roboto</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="pt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() => handleSaveSettings()}
+                disabled={saving}
+                className="bg-amber-600 hover:bg-amber-500 text-neutral-950 font-bold px-6 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-md cursor-pointer"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                <span>Lưu thay đổi Thương hiệu</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ADD CUSTOM REMINDER MODAL */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
@@ -1263,6 +1785,209 @@ export const SettingsView: React.FC = () => {
               >
                 <Check className="w-3.5 h-3.5" />
                 <span>Thêm vào danh sách</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DRILL-DOWN LIST MANAGEMENT MODAL (KIOTVIET SPEC) */}
+      {manageListModal && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-amber-500" />
+                  {manageListModal === 'units' && 'Quản lý Đơn vị tính'}
+                  {manageListModal === 'categories' && 'Quản lý Nhóm hàng hóa'}
+                  {manageListModal === 'brands' && 'Quản lý Thương hiệu'}
+                  {manageListModal === 'locations' && 'Quản lý Vị trí kho & Kệ hàng'}
+                  {manageListModal === 'attributes' && 'Quản lý Thuộc tính'}
+                </h3>
+                <p className="text-[11px] text-neutral-400 mt-0.5">
+                  Thêm mới hoặc xóa các mục để chuẩn hóa dữ liệu hàng hóa trên toàn hệ thống
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setManageListModal(null);
+                  setNewListItemInput('');
+                }}
+                className="text-neutral-400 hover:text-white text-xs font-bold px-2 py-1 bg-neutral-800 rounded-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Add new item input */}
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={newListItemInput}
+                onChange={(e) => setNewListItemInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (!newListItemInput.trim()) return;
+                    const val = newListItemInput.trim();
+                    if (manageListModal === 'units' && !unitsList.includes(val)) {
+                      setUnitsList((prev) => [...prev, val]);
+                    } else if (manageListModal === 'categories' && !categoriesList.includes(val)) {
+                      setCategoriesList((prev) => [...prev, val]);
+                    } else if (manageListModal === 'brands' && !brandsList.includes(val)) {
+                      setBrandsList((prev) => [...prev, val]);
+                    } else if (manageListModal === 'locations' && !locationsList.includes(val)) {
+                      setLocationsList((prev) => [...prev, val]);
+                    } else if (manageListModal === 'attributes') {
+                      setAttributesList((prev) => [...prev, { name: val, values: ['Tiêu chuẩn'] }]);
+                    }
+                    setNewListItemInput('');
+                  }
+                }}
+                placeholder={
+                  manageListModal === 'units'
+                    ? 'Nhập đơn vị mới (VD: Lốc, Thùng, Gram...)'
+                    : manageListModal === 'categories'
+                    ? 'Nhập tên nhóm hàng mới...'
+                    : manageListModal === 'brands'
+                    ? 'Nhập tên thương hiệu mới...'
+                    : manageListModal === 'locations'
+                    ? 'Nhập vị trí mới (VD: Kệ A3, Tủ đông 2...)'
+                    : 'Nhập tên thuộc tính (VD: Dung tích, Kích cỡ...)'
+                }
+                className="flex-1 bg-neutral-950 border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-hidden focus:border-amber-500"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (!newListItemInput.trim()) return;
+                  const val = newListItemInput.trim();
+                  if (manageListModal === 'units' && !unitsList.includes(val)) {
+                    setUnitsList((prev) => [...prev, val]);
+                  } else if (manageListModal === 'categories' && !categoriesList.includes(val)) {
+                    setCategoriesList((prev) => [...prev, val]);
+                  } else if (manageListModal === 'brands' && !brandsList.includes(val)) {
+                    setBrandsList((prev) => [...prev, val]);
+                  } else if (manageListModal === 'locations' && !locationsList.includes(val)) {
+                    setLocationsList((prev) => [...prev, val]);
+                  } else if (manageListModal === 'attributes') {
+                    setAttributesList((prev) => [...prev, { name: val, values: ['Tiêu chuẩn'] }]);
+                  }
+                  setNewListItemInput('');
+                }}
+                className="bg-amber-600 hover:bg-amber-500 text-neutral-950 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1 cursor-pointer shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Thêm</span>
+              </button>
+            </div>
+
+            {/* List items view */}
+            <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1 divide-y divide-neutral-850">
+              {manageListModal === 'units' &&
+                unitsList.map((unit) => (
+                  <div key={unit} className="flex items-center justify-between py-2 px-1 text-xs text-neutral-200">
+                    <span className="font-semibold">{unit}</span>
+                    <button
+                      type="button"
+                      onClick={() => setUnitsList((prev) => prev.filter((u) => u !== unit))}
+                      className="p-1 text-neutral-500 hover:text-red-400 transition-colors"
+                      title="Xóa đơn vị"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+
+              {manageListModal === 'categories' &&
+                categoriesList.map((cat) => (
+                  <div key={cat} className="flex items-center justify-between py-2 px-1 text-xs text-neutral-200">
+                    <span className="font-semibold">{cat}</span>
+                    <button
+                      type="button"
+                      onClick={() => setCategoriesList((prev) => prev.filter((c) => c !== cat))}
+                      className="p-1 text-neutral-500 hover:text-red-400 transition-colors"
+                      title="Xóa nhóm hàng"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+
+              {manageListModal === 'brands' &&
+                brandsList.map((brand) => (
+                  <div key={brand} className="flex items-center justify-between py-2 px-1 text-xs text-neutral-200">
+                    <span className="font-semibold">{brand}</span>
+                    <button
+                      type="button"
+                      onClick={() => setBrandsList((prev) => prev.filter((b) => b !== brand))}
+                      className="p-1 text-neutral-500 hover:text-red-400 transition-colors"
+                      title="Xóa thương hiệu"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+
+              {manageListModal === 'locations' &&
+                locationsList.map((loc) => (
+                  <div key={loc} className="flex items-center justify-between py-2 px-1 text-xs text-neutral-200">
+                    <span className="font-semibold">{loc}</span>
+                    <button
+                      type="button"
+                      onClick={() => setLocationsList((prev) => prev.filter((l) => l !== loc))}
+                      className="p-1 text-neutral-500 hover:text-red-400 transition-colors"
+                      title="Xóa vị trí"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+
+              {manageListModal === 'attributes' &&
+                attributesList.map((attr) => (
+                  <div key={attr.name} className="flex items-center justify-between py-2 px-1 text-xs text-neutral-200">
+                    <div>
+                      <span className="font-semibold">{attr.name}</span>
+                      <span className="text-[11px] text-neutral-400 ml-2">({attr.values.join(', ')})</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAttributesList((prev) => prev.filter((a) => a.name !== attr.name))}
+                      className="p-1 text-neutral-500 hover:text-red-400 transition-colors"
+                      title="Xóa thuộc tính"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+            </div>
+
+            {/* Modal actions */}
+            <div className="pt-3 border-t border-neutral-800 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setManageListModal(null);
+                  setNewListItemInput('');
+                }}
+                className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-xl text-xs font-semibold cursor-pointer"
+              >
+                Đóng
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await handleSaveSettings();
+                  setManageListModal(null);
+                  setNewListItemInput('');
+                }}
+                className="px-5 py-2 bg-amber-600 hover:bg-amber-500 text-neutral-950 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md cursor-pointer"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Lưu thay đổi</span>
               </button>
             </div>
           </div>

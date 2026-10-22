@@ -42,6 +42,48 @@ export interface TelegramConfig {
   customReminders?: TelegramCustomReminder[];
 }
 
+export interface ConversionUnit {
+  id?: string;
+  unitName: string;
+  name?: string;
+  conversionRate: number; // e.g., 24
+  price: number;
+  costPrice?: number;
+  barcode?: string;
+}
+
+export interface BatchItem {
+  id: string;
+  batchCode: string;
+  mfgDate?: string;
+  expDate: string;
+  quantity: number;
+  costPrice: number;
+  createdAt: string;
+}
+
+export interface EnterpriseSettings {
+  enableBarcode: boolean;
+  autoSuggestInfo: boolean;
+  unitsList: string[];
+  categoriesList: string[];
+  brandsList: string[];
+  locationsList: string[];
+  attributesList: { name: string; values: string[] }[];
+  costMethod: 'fixed' | 'average';
+  enableBatchTracking: boolean;
+  enableManufacturing: boolean;
+  enableCategoryRBAC: boolean;
+  allowChangeTransactionTime: boolean;
+}
+
+export interface BrandConfig {
+  primaryColor: string;
+  secondaryColor: string;
+  logoUrl: string;
+  fontFamily: string;
+}
+
 export interface Shop {
   id: string;
   name: string;
@@ -55,6 +97,8 @@ export interface Shop {
   currency: string;
   sepayConfig?: SepayConfig;
   telegramConfig?: TelegramConfig;
+  enterpriseSettings?: EnterpriseSettings;
+  brandConfig?: BrandConfig;
   createdAt: string;
 }
 
@@ -63,12 +107,31 @@ export interface ShopMember {
   userId: string;
   email: string;
   role: UserRole;
+  allowedCategories?: string[]; // Phân quyền theo nhóm hàng
   joinedAt: string;
 }
 
-export type ProductUnit = 'con' | 'nua_con' | 'goc_tu' | 'kg' | 'phan' | 'chiec' | 'dia' | 'chai' | 'lon';
+export type ProductUnit = string;
 
-export const UNIT_LABELS: Record<ProductUnit, string> = {
+export const DEFAULT_UNITS = [
+  'Chiếc',
+  'Cái',
+  'Lon',
+  'Chai',
+  'Hộp',
+  'Lốc',
+  'Thùng',
+  'Gói',
+  'Kg',
+  'Gram',
+  'Phần',
+  'Đĩa',
+  'Bao',
+  'Bộ',
+  'Cuộn',
+];
+
+export const UNIT_LABELS: Record<string, string> = {
   con: 'Con',
   nua_con: 'Nửa con',
   goc_tu: 'Góc tư (1/4)',
@@ -78,19 +141,30 @@ export const UNIT_LABELS: Record<ProductUnit, string> = {
   dia: 'Đĩa',
   chai: 'Chai',
   lon: 'Lon',
+  thung: 'Thùng',
+  loc: 'Lốc',
+  hop: 'Hộp',
 };
 
 export interface Product {
   id: string;
   name: string;
   code: string;
+  barcode?: string;
   category: string;
-  unit: ProductUnit;
+  brand?: string;
+  location?: string;
+  unit: string;
   price: number;
   costPrice: number;
+  costMethod?: 'fixed' | 'average';
   stockQuantity: number;
   minStockAlert: number;
   isAvailable: boolean;
+  hasBatchTracking?: boolean;
+  batches?: BatchItem[];
+  conversionUnits?: ConversionUnit[];
+  attributes?: Record<string, string>;
   createdAt: string;
   updatedAt?: string;
 }
@@ -100,13 +174,18 @@ export type DiningOption = 'takeaway' | 'dine_in';
 export interface OrderItem {
   productId: string;
   name: string;
-  unit: ProductUnit;
+  unit: string;
   unitPrice: number;
   quantity: number;
-  weightKg?: number; // e.g., 1.45 kg
+  weightKg?: number;
   totalPrice: number;
+  selectedUnit?: string;
+  conversionRate?: number;
+  batchId?: string;
+  batchCode?: string;
+  expDate?: string;
   note?: string;
-  prepNote?: string; // e.g., "Chặt miếng vừa ăn", "Để nguyên con", "Không cay"
+  prepNote?: string;
 }
 
 export type PaymentMethod = 'cash' | 'transfer';
@@ -338,4 +417,65 @@ export interface PreOrder {
   createdAt: string;
   updatedAt: string;
 }
+
+// ========================
+// SỔ QUỸ & TÀI CHÍNH (CASHBOOK)
+// ========================
+export type CashTransactionType = 'receipt' | 'payment'; // Phiếu thu / Phiếu chi
+
+export interface CashTransaction {
+  id: string;
+  code: string; // PT-0001, PC-0001
+  type: CashTransactionType;
+  category: string;
+  amount: number;
+  paymentMethod: 'cash' | 'transfer';
+  date: string;
+  recipientOrPayer: string;
+  referenceCode?: string;
+  note?: string;
+  creatorId: string;
+  creatorName: string;
+  createdAt: string;
+}
+
+// ========================
+// KIỂM KHO (STOCK AUDIT)
+// ========================
+export type StockAuditStatus = 'draft' | 'balanced' | 'cancelled';
+
+export interface StockAuditItem {
+  productId: string;
+  productCode: string;
+  productName: string;
+  unit: string;
+  systemQuantity: number;
+  actualQuantity: number;
+  differenceQuantity: number;
+  costPrice: number;
+  differenceValue: number;
+  batchCode?: string;
+  note?: string;
+}
+
+export interface StockAudit {
+  id: string;
+  auditCode: string;
+  code?: string;
+  creatorId: string;
+  creatorName: string;
+  performedBy?: string;
+  status: StockAuditStatus;
+  items: StockAuditItem[];
+  totalSystemQty: number;
+  totalActualQty: number;
+  totalDiffQty: number;
+  totalDiffValue: number;
+  note?: string;
+  notes?: string;
+  auditDate?: string;
+  createdAt: string;
+  balancedAt?: string;
+}
+
 

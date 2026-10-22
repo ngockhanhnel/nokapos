@@ -17,6 +17,7 @@ import {
   Truck,
   UserCheck,
   CalendarClock,
+  MessageSquare,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -38,6 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, unr
     { id: 'kds', label: 'Màn hình Bếp (KDS)', icon: ChefHat, allowed: true },
     { id: 'customers', label: 'Khách hàng (CRM)', icon: UserCheck, allowed: true },
     { id: 'autobank', label: 'Autobank (SePay)', icon: Zap, allowed: isOwner },
+    { id: 'chat', label: 'Trợ lý AI (DuckPOS)', icon: MessageSquare, allowed: true },
     { id: 'branches', label: 'Quản lý Chi nhánh', icon: Building2, allowed: isOwner },
     { id: 'notifications', label: 'Thông báo & Nhắc việc', icon: Bell, allowed: true, badge: unreadCount },
     { id: 'products', label: 'Sản phẩm', icon: UtensilsCrossed, allowed: true },

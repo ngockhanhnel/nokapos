@@ -7,7 +7,7 @@ export default async function handler(req: Request, res: Response) {
   }
 
   try {
-    const { message, history = [], model = 'gemini-3.8-flash', contextData, shopId } = req.body || {};
+    const { message, history = [], model = 'gemini-3.8-flash', contextData, shopId, currentView } = req.body || {};
 
     if (!message || typeof message !== 'string' || !message.trim()) {
       return res.status(400).json({ success: false, error: 'Tin nhắn không được để trống.' });
@@ -15,6 +15,10 @@ export default async function handler(req: Request, res: Response) {
 
     if (message.length > 2000) {
       return res.status(400).json({ success: false, error: 'Tin nhắn vượt quá giới hạn ký tự cho phép.' });
+    }
+
+    if (shopId && typeof shopId === 'string' && !shopId.trim()) {
+      return res.status(400).json({ success: false, error: 'Mã cửa hàng không hợp lệ.' });
     }
 
     const validModels = ['gemini-4-argon', 'gemini-3.8-flash', 'gemini-3.1-flash-lite'];
@@ -29,14 +33,30 @@ export default async function handler(req: Request, res: Response) {
       },
     });
 
-    const systemInstruction = `Bạn là Trợ lý AI thông minh mang tên "Trợ lý DuckPOS Pro", chuyên gia phân tích dữ liệu bán hàng, kho hàng, tài chính và vận hành quán ăn/bán lẻ của hệ thống "DuckPOS Pro". 
-Bạn có quyền truy cập ngữ cảnh cơ sở dữ liệu đã xác thực của cửa hàng: ${contextData ? JSON.stringify(contextData) : 'Chưa có ngữ cảnh chi tiết'}.
+    const metrics = contextData || {};
+    const totalSales = metrics.totalCalculatedRevenue !== undefined ? Number(metrics.totalCalculatedRevenue).toLocaleString('vi-VN') + ' đ' : 'Chưa có số liệu';
+    const lowStockCount = Array.isArray(metrics.lowStockItems) ? metrics.lowStockItems.length : 0;
+    const lowStockDetails = Array.isArray(metrics.lowStockItems) && metrics.lowStockItems.length > 0 
+      ? metrics.lowStockItems.map((i: any) => `- ${i.name} (Tồn: ${i.stock} ${i.unit || ''})`).join('\n')
+      : 'Không có sản phẩm nào sắp hết hàng.';
 
-QUY TẮC PHẢN HỒI BẢO MẬT & CHUYÊN NGHIỆP:
-1. Bám sát tuyệt đối vào dữ liệu được xác thực từ cơ sở dữ liệu cửa hàng. Không bịa đặt số liệu.
-2. Phân tích logic, rõ ràng, chia ý mạch lạc (sử dụng gạch đầu dòng, danh sách đánh số hoặc các bước thực hiện cụ thể).
-3. TUYỆT ĐỐI KHÔNG sử dụng ký tự Markdown thô như "###", "### **", hoặc tiêu đề rườm rà.
-4. Trình bày hoàn hảo, sạch sẽ, ngôn ngữ tiếng Việt lịch sự, chuẩn xác, hỗ trợ tối đa cho chủ quán và nhân viên.`;
+    const systemInstruction = `Bạn là Trợ lý AI thông minh mang tên "Trợ lý DuckPOS Pro", chuyên gia cao cấp tư vấn quản lý vận hành, bán hàng, kiểm soát kho nguyên liệu và tài chính cho chuỗi cửa hàng & quán vịt quay chuyên nghiệp ("DuckPOS Pro"). 
+Bạn am hiểu sâu sắc nghiệp vụ đặc thù của quán vịt quay: bán theo con, nửa con, theo kg, chặt miếng/đóng hộp, quản lý lô vịt sống/vịt quay, gia vị tẩm ướp, quản lý màn hình nhà bếp (KDS), đối soát chuyển khoản tự động SePay, chốt ca và kiểm kho định kỳ.
+Người dùng hiện đang thao tác tại màn hình: **${currentView || 'Chưa xác định'}**. Hãy ưu tiên tư vấn các nghiệp vụ liên quan đến màn hình này.
+
+THÔNG TIN & SỐ LIỆU CỬA HÀNG VỊT QUAY THEO THỜI GIAN THỰC (REAL-TIME METRICS):
+- Tổng doanh thu tính đến hiện tại: ${totalSales}
+- Danh mục sản phẩm hiện có: ${metrics.totalProducts || 0} món (vịt quay tiêu chuẩn, vịt quay bắc kinh, nước chấm, bánh bao...)
+- Số lượng mặt hàng nguyên liệu/sản phẩm sắp hết kho (Low-stock): ${lowStockCount}
+Chi tiết cảnh báo tồn kho:
+${lowStockDetails}
+- Tổng số đơn hàng đã ghi nhận: ${metrics.totalOrdersCount || 0}
+
+QUY TẮC PHẢN HỒI CHUYÊN NGHIỆP & THỰC TẾ:
+1. Bám sát tuyệt đối vào số liệu thực tế được cung cấp từ cơ sở dữ liệu của quán vịt quay. Không bịa đặt số liệu.
+2. Tư vấn giải pháp quản lý thực tế, súc tích, phân tích logic rõ ràng (chia theo các bước, gạch đầu dòng gọn gàng).
+3. TUYỆT ĐỐI KHÔNG sử dụng ký tự Markdown thô như "###", "### **", hoặc tiêu đề rườm rà. Trả về định dạng chuỗi văn bản sạch, dễ đọc.
+4. Luôn giữ thái độ chuyên nghiệp, thân thiện, đồng hành cùng chủ quán và nhân viên tối ưu hóa doanh thu và giảm thất thoát nguyên liệu vịt quay.`;
 
     const contents: any[] = [];
     if (Array.isArray(history)) {
@@ -63,7 +83,15 @@ QUY TẮC PHẢN HỒI BẢO MẬT & CHUYÊN NGHIỆP:
       }
     });
 
-    const replyText = response.text || 'Xin lỗi, tôi chưa thể trả lời lúc này.';
+    let replyText = response.text || 'Xin lỗi, tôi chưa thể trả lời lúc này.';
+    replyText = replyText
+      .replace(/###\s*\**/g, '')
+      .replace(/\*\*\s*###/g, '')
+      .replace(/###/g, '')
+      .replace(/##/g, '')
+      .replace(/#/g, '')
+      .trim();
+
     return res.status(200).json({ success: true, reply: replyText });
   } catch (err: any) {
     console.error('[Vercel Serverless Gemini Chat API Error]:', err);

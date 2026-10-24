@@ -37,6 +37,10 @@
       "destination": "/api/admin/cron/trigger.ts"
     },
     {
+      "source": "/api/chat",
+      "destination": "/api/gemini/chat.ts"
+    },
+    {
       "source": "/api/gemini/chat",
       "destination": "/api/gemini/chat.ts"
     },

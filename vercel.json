@@ -1,0 +1,67 @@
+{
+  "version": 2,
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/api/health",
+      "destination": "/api/health.ts"
+    },
+    {
+      "source": "/api/telegram/send",
+      "destination": "/api/telegram/send.ts"
+    },
+    {
+      "source": "/api/sepay/webhook",
+      "destination": "/api/sepay/webhook.ts"
+    },
+    {
+      "source": "/api/callback/sepay",
+      "destination": "/api/sepay/webhook.ts"
+    },
+    {
+      "source": "/api/admin/users",
+      "destination": "/api/admin/users.ts"
+    },
+    {
+      "source": "/api/admin/audit-logs",
+      "destination": "/api/admin/audit-logs.ts"
+    },
+    {
+      "source": "/api/admin/cleanup-db",
+      "destination": "/api/admin/cleanup-db.ts"
+    },
+    {
+      "source": "/api/admin/cron/trigger",
+      "destination": "/api/admin/cron/trigger.ts"
+    },
+    {
+      "source": "/api/gemini/chat",
+      "destination": "/api/gemini/chat.ts"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ]
+}

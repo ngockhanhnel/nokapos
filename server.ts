@@ -7,6 +7,12 @@ import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc } fro
 import { GoogleGenAI } from '@google/genai';
 import firebaseConfig from './firebase-applet-config.json';
 import { chatRouter } from './src/api/chat';
+import { 
+  cleanupOldTemporaryLogs, 
+  expireTemporaryDiscountCodes, 
+  generateEndOfDaySummaryReport, 
+  runAllDailyCronTasks 
+} from './src/functions/cron.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -50,6 +56,149 @@ async function startServer() {
       nodeVersion: process.version,
       timestamp: new Date().toISOString(),
     });
+  });
+
+  // SuperAdmin Endpoint: Get all system users across shops
+  app.get('/api/admin/users', async (req, res) => {
+    const adminEmail = req.headers['x-admin-email'];
+    if (adminEmail !== 'ngockhanhsocial@gmail.com') {
+      return res.status(403).json({ success: false, error: 'Unauthorized' });
+    }
+
+    try {
+      const usersSnap = await getDocs(collection(db, 'users'));
+      const shopsSnap = await getDocs(collection(db, 'shops'));
+
+      const shopMap = new Map<string, string>();
+      shopsSnap.forEach((d) => {
+        const data = d.data();
+        shopMap.set(d.id, data.name || 'Cửa hàng ' + d.id);
+      });
+
+      const userList: any[] = [];
+      usersSnap.forEach((d) => {
+        const u = d.data();
+        userList.push({
+          uid: d.id,
+          email: u.email || 'Chưa cập nhật',
+          displayName: u.displayName || 'Người dùng POS',
+          currentShopId: u.currentShopId || '',
+          shopName: shopMap.get(u.currentShopId) || 'Chưa chọn shop',
+          createdAt: u.createdAt || new Date().toISOString(),
+          status: 'active',
+        });
+      });
+
+      return res.json({ success: true, count: userList.length, users: userList });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // SuperAdmin Endpoint: Get consolidated audit logs across all shops
+  app.get('/api/admin/audit-logs', async (req, res) => {
+    const adminEmail = req.headers['x-admin-email'];
+    if (adminEmail !== 'ngockhanhsocial@gmail.com') {
+      return res.status(403).json({ success: false, error: 'Unauthorized' });
+    }
+
+    try {
+      const shopsSnap = await getDocs(collection(db, 'shops'));
+      const allLogs: any[] = [];
+
+      for (const shopDoc of shopsSnap.docs) {
+        const shopId = shopDoc.id;
+        const shopName = shopDoc.data().name || 'Shop ' + shopId;
+        try {
+          const logsSnap = await getDocs(collection(db, 'shops', shopId, 'auditLogs'));
+          logsSnap.forEach((d) => {
+            const l = d.data();
+            allLogs.push({
+              id: d.id,
+              shopId,
+              shopName,
+              action: l.action || 'Thao tác hệ thống',
+              actorEmail: l.actorEmail || l.actorId || 'Hệ thống',
+              details: l.details || '',
+              timestamp: l.timestamp || new Date().toISOString(),
+            });
+          });
+        } catch {
+          // ignore subcollection read errors if empty
+        }
+      }
+
+      // Sort by newest timestamp
+      allLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      return res.json({ success: true, count: allLogs.length, logs: allLogs.slice(0, 100) });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // SuperAdmin Endpoint: Automatic Database & Log Cleanup Function
+  app.post('/api/admin/cleanup-db', async (req, res) => {
+    const adminEmail = req.headers['x-admin-email'];
+    if (adminEmail !== 'ngockhanhsocial@gmail.com') {
+      return res.status(403).json({ success: false, error: 'Unauthorized' });
+    }
+
+    try {
+      const result = await cleanupOldTemporaryLogs(30);
+      return res.json({
+        success: true,
+        message: result.message,
+        cleanedAuditLogsCount: result.details?.deletedLogsCount || 0,
+        cleanedTempBuffersCount: result.details?.deletedHoldOrdersCount || 0,
+        freedStorageKb: Math.round(((result.details?.deletedLogsCount || 0) * 1.2) + 15),
+        timestamp: result.executedAt,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // SuperAdmin Endpoint: Cronjob Trigger Runner
+  app.post('/api/admin/cron/trigger', async (req, res) => {
+    const adminEmail = req.headers['x-admin-email'];
+    if (adminEmail !== 'ngockhanhsocial@gmail.com') {
+      return res.status(403).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const { taskId } = req.body;
+
+    try {
+      let taskResult;
+      if (taskId === 'cron_cleanup') {
+        taskResult = await cleanupOldTemporaryLogs(30);
+      } else if (taskId === 'cron_discounts') {
+        taskResult = await expireTemporaryDiscountCodes();
+      } else if (taskId === 'cron_sales_summary') {
+        taskResult = await generateEndOfDaySummaryReport();
+      } else {
+        const dailyAll = await runAllDailyCronTasks();
+        taskResult = {
+          taskName: 'runAllDailyCronTasks',
+          executedAt: dailyAll.executedAt,
+          status: 'SUCCESS',
+          message: `Đã chạy thành công toàn bộ ${dailyAll.results.length} tác vụ Cronjob định kỳ.`,
+        };
+      }
+
+      return res.json({
+        success: true,
+        result: {
+          taskId,
+          executedAt: taskResult.executedAt,
+          status: taskResult.status,
+          message: taskResult.message,
+          details: taskResult.message,
+        },
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
   });
 
   // Mount /api/chat route

@@ -33,6 +33,9 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '@/src/lib/firebase';
 import { Loader2 } from 'lucide-react';
 import { ChatView } from '@/src/views/ChatView';
+import { AdminView } from '@/src/views/AdminView';
+import { AdvancedPricingEngine } from '@/src/components/pricing/AdvancedPricingEngine';
+import { isSuperAdmin } from '@/src/lib/adminAuth';
 
 const MainApp: React.FC = () => {
   const { user, currentShop, loading } = useAuth();
@@ -61,6 +64,13 @@ const MainApp: React.FC = () => {
       window.removeEventListener('storage', updateCount);
     };
   }, []);
+
+  // Zero-trace silent protection: If unauthorized user tries to access 'admin', immediately redirect to dashboard
+  useEffect(() => {
+    if (currentView === 'admin' && !isSuperAdmin(user)) {
+      setCurrentView('dashboard');
+    }
+  }, [currentView, user]);
 
   // Automated memory & listener cleanup when switching between complex views
   useEffect(() => {
@@ -260,7 +270,10 @@ const MainApp: React.FC = () => {
               }}
             />
           )}
-          {currentView === 'products' && <ProductsView />}
+          {currentView === 'products' && (
+            <ProductsView onNavigateToPricing={() => setCurrentView('pricing')} />
+          )}
+          {currentView === 'pricing' && <AdvancedPricingEngine />}
           {currentView === 'inventory' && <InventoryView />}
           {currentView === 'suppliers' && <SuppliersView />}
           {currentView === 'customers' && <CustomersView />}
@@ -275,6 +288,7 @@ const MainApp: React.FC = () => {
           )}
           {currentView === 'kds' && <KDSView />}
           {currentView === 'branches' && <BranchesView />}
+          {currentView === 'admin' && isSuperAdmin(user) && <AdminView onNavigate={setCurrentView} />}
           {currentView === 'settings' && <SettingsView />}
         </main>
       </div>

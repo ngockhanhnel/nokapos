@@ -51,6 +51,7 @@ import {
 } from '@/src/lib/telegram';
 import { TelegramService } from '@/src/lib/telegramService';
 import { playNotificationSound } from '@/src/lib/notifications';
+import { playPaymentSoundbox, testSoundbox } from '@/src/lib/soundbox';
 import { SepayTransaction } from '@/src/types';
 import {
   Search,
@@ -88,6 +89,8 @@ import {
   CalendarClock,
   Calendar,
   ExternalLink,
+  Volume2,
+  Speaker,
 } from 'lucide-react';
 
 interface PosViewProps {
@@ -860,7 +863,12 @@ export const PosView: React.FC<PosViewProps> = ({
             );
             if (isMatch) {
               console.log('⚡ SePay Autobank Matched Order:', currentOrderCode, tx);
-              playNotificationSound();
+              // Kích hoạt Loa Thanh Toán Thông Minh: Chuông Ting-Ting + Giọng đọc tiếng Việt số tiền
+              playPaymentSoundbox({
+                amount: tx.transferAmount,
+                orderCode: currentOrderCode,
+                shopName: currentShop?.name,
+              });
               setSepayAutoToast(
                 `🎉 Đã nhận +${formatCurrency(tx.transferAmount)} qua SePay! Đang tự động chốt đơn và mở bill...`
               );
@@ -1591,6 +1599,23 @@ export const PosView: React.FC<PosViewProps> = ({
                   <div className="mt-2 p-1.5 rounded-lg bg-red-950/40 border border-red-900/60 flex items-center justify-center gap-1.5 text-[10px] text-amber-300 animate-pulse">
                     <Zap className="w-3 h-3 text-amber-400" />
                     <span>SePay Autobank: Đang chờ tiền vào để tự động chốt đơn...</span>
+                  </div>
+
+                  {/* Soundbox Speaker Status & Quick Test */}
+                  <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-neutral-800 text-[10px]">
+                    <div className="flex items-center gap-1.5 text-neutral-400">
+                      <Speaker className="w-3 h-3 text-amber-400" />
+                      <span>Loa thanh toán: Chuông Ting & Đọc tiền</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => testSoundbox(finalTotal || 120000)}
+                      className="px-2 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 transition-all active:scale-95"
+                      title="Kiểm tra âm lượng loa tại quầy"
+                    >
+                      <Volume2 className="w-3 h-3" />
+                      <span>Nghe thử loa</span>
+                    </button>
                   </div>
                 </div>
               ) : (

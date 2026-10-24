@@ -23,6 +23,7 @@ const VIEW_TITLES: Record<string, string> = {
   autobank: 'Cổng thanh toán tự động Autobank (SePay)',
   kds: 'Màn hình Bếp (KDS) Realtime',
   branches: 'Quản lý Đa Chi Nhánh',
+  admin: 'Trung tâm Quản trị Admin',
 };
 
 export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, unreadCount = 0 }) => {
@@ -60,12 +61,20 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, unreadC
     <header className="h-16 bg-neutral-900/95 backdrop-blur border-b border-neutral-800 px-4 lg:px-6 flex items-center justify-between sticky top-0 z-30 shrink-0">
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-lg bg-primary/90 border border-primary/60 flex items-center justify-center text-secondary font-bold shadow-sm">
-            🦆
+          <div className="w-9 h-9 rounded-lg bg-primary/90 border border-primary/60 flex items-center justify-center text-secondary font-bold shadow-sm overflow-hidden shrink-0">
+            {currentShop?.brandConfig?.logoUrl ? (
+              <img
+                src={currentShop.brandConfig.logoUrl}
+                alt={currentShop.name || 'Logo'}
+                className="w-full h-full object-contain p-0.5 rounded-lg"
+              />
+            ) : (
+              '🦆'
+            )}
           </div>
           <div>
-            <div className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-              {currentShop ? currentShop.name : 'DuckPOS Pro'}
+            <div className="text-xs sm:text-sm font-bold text-white tracking-tight flex items-center gap-1.5 truncate max-w-[130px] sm:max-w-xs md:max-w-md">
+              <span className="truncate">{currentShop ? currentShop.name : 'DuckPOS Pro'}</span>
             </div>
             <div className="text-xs text-neutral-400">
               {VIEW_TITLES[currentView] || 'Quản lý'}

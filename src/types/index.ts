@@ -84,6 +84,36 @@ export interface BrandConfig {
   fontFamily: string;
 }
 
+export interface CustomPricingItem {
+  id: string;
+  name: string;
+  unit: string;
+  rawWeightKg: number;
+  rawCostPerKg: number;
+  shrinkagePercent: number;
+  marinadeCost: number;
+  fuelCost: number;
+  packagingCost: number;
+  overheadCost: number;
+  targetMarginPercent: number;
+  createdAt: string;
+}
+
+export interface PricingConfig {
+  shrinkageRatePercent: number; // e.g. 25 (%)
+  marinadeCostPerDuck: number; // e.g. 15,000đ
+  gasCharcoalCostPerDuck: number; // e.g. 12,000đ
+  packagingCostPerUnit: number; // e.g. 5,000đ
+  allocatedOverheadPerUnit: number; // e.g. 10,000đ
+  targetMarginPercent: number; // e.g. 35 (%)
+  deliveryAppCommissionPercent: number; // e.g. 20 (%)
+  wholesaleDiscountPercent: number; // e.g. 15 (%)
+  happyHourDiscountPercent: number; // e.g. 10 (%)
+  roundingRule: '1000' | '5000' | '10000' | 'none';
+  customItems?: CustomPricingItem[];
+  updatedAt?: string;
+}
+
 export interface Shop {
   id: string;
   name: string;
@@ -99,6 +129,7 @@ export interface Shop {
   telegramConfig?: TelegramConfig;
   enterpriseSettings?: EnterpriseSettings;
   brandConfig?: BrandConfig;
+  pricingConfig?: PricingConfig;
   createdAt: string;
 }
 
@@ -214,6 +245,10 @@ export interface Order {
   changeCash?: number;
   cancellationReason?: string;
   createdAt: string;
+  updatedAt?: string;
+  editedAt?: string;
+  editedBy?: string;
+  editReason?: string;
 }
 
 export interface HoldOrder {

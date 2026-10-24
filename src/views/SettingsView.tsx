@@ -54,11 +54,15 @@ import {
   Tag,
   Barcode,
   PackageCheck,
+  Terminal,
 } from 'lucide-react';
+import { LogoSettings } from '@/src/components/settings/LogoSettings';
+import { DebugLogSettings } from '@/src/components/settings/DebugLogSettings';
+import { AdvancedPricingEngine } from '@/src/components/pricing/AdvancedPricingEngine';
 
 export const SettingsView: React.FC = () => {
   const { currentShop, reloadShopData, userRole, user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'shop' | 'enterprise' | 'telegram' | 'sepay' | 'pricing' | 'security' | 'brand'>('brand');
+  const [activeTab, setActiveTab] = useState<'shop' | 'enterprise' | 'telegram' | 'sepay' | 'pricing' | 'security' | 'brand' | 'debug'>('enterprise');
 
   // Enterprise KiotViet-style Settings State
   const [enableBarcode, setEnableBarcode] = useState(currentShop?.enterpriseSettings?.enableBarcode ?? true);
@@ -640,6 +644,18 @@ export const SettingsView: React.FC = () => {
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             <span>Tùy chỉnh Thương hiệu</span>
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('debug')}
+            className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shrink-0 ${
+              activeTab === 'debug'
+                ? 'bg-red-800 text-white shadow-xs'
+                : 'text-neutral-400 hover:text-white'
+            }`}
+          >
+            <Terminal className="w-3.5 h-3.5 text-purple-400" />
+            <span>Gỡ lỗi & Logs</span>
+          </button>
         </div>
       </div>
 
@@ -1146,59 +1162,10 @@ export const SettingsView: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 2: ADVANCED PRICING */}
+      {/* TAB 2: ADVANCED PRICING & REAL COST-ACCOUNTING ENGINE */}
       {activeTab === 'pricing' && (
-        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-6 max-w-4xl">
-          <div>
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              Cài đặt Giá Chuyên Sâu & Biên Lợi Nhuận % trên Giá Vốn
-            </h3>
-            <p className="text-xs text-neutral-400 mt-1">
-              Thiết lập tỷ suất lợi nhuận mong muốn (%) để tự động tính toán và cập nhật giá bán hàng loạt cho tất cả món ăn trong kho dựa theo giá vốn.
-            </p>
-          </div>
-
-          {markupMsg && (
-            <div className={`p-3 rounded-xl text-xs flex items-center gap-2 ${markupMsg.success ? 'bg-emerald-950/80 border border-emerald-800 text-emerald-200' : 'bg-red-950/80 border border-red-800 text-red-200'}`}>
-              <Check className="w-4 h-4" />
-              <span>{markupMsg.text}</span>
-            </div>
-          )}
-
-          <div className="bg-neutral-950 p-5 rounded-2xl border border-neutral-800 space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-neutral-300 mb-1">
-                Tỷ suất lợi nhuận (Markup %) mục tiêu so với Giá vốn:
-              </label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="number"
-                  min="5"
-                  max="500"
-                  value={markupPercent}
-                  onChange={(e) => setMarkupPercent(Number(e.target.value))}
-                  className="w-32 bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-sm text-white font-bold focus:outline-hidden focus:border-amber-500"
-                />
-                <span className="text-sm text-neutral-300 font-bold">% trên giá vốn</span>
-              </div>
-              <p className="text-[11px] text-neutral-500 mt-1.5">
-                Ví dụ: Giá vốn món vịt là 150,000đ, với biên lợi nhuận 30%, hệ thống tự động tính giá bán = 150,000 * 1.3 = 195,000đ (làm tròn đến hàng nghìn).
-              </p>
-            </div>
-
-            <div className="pt-2 border-t border-neutral-800 flex justify-end">
-              <button
-                type="button"
-                onClick={handleApplyMarkup}
-                disabled={applyingMarkup}
-                className="bg-amber-600 hover:bg-amber-500 text-neutral-950 font-bold px-6 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-md cursor-pointer"
-              >
-                {applyingMarkup ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                <span>Áp dụng cập nhật giá hàng loạt</span>
-              </button>
-            </div>
-          </div>
+        <div className="max-w-5xl">
+          <AdvancedPricingEngine />
         </div>
       )}
 
@@ -1607,10 +1574,14 @@ export const SettingsView: React.FC = () => {
       {/* TAB BRAND CUSTOMIZATION */}
       {activeTab === 'brand' && (
         <div className="space-y-6 max-w-4xl">
+          {/* Logo Upload Component */}
+          <LogoSettings />
+
+          {/* Theme Colors and Typography Card */}
           <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-4">
             <h3 className="text-sm font-bold text-white flex items-center gap-2 border-b border-neutral-800 pb-3">
               <Sparkles className="w-4 h-4 text-amber-500" />
-              Tùy chỉnh Thương hiệu DuckPOS Pro
+              Màu Sắc & Font Chữ Thương Hiệu
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1633,7 +1604,7 @@ export const SettingsView: React.FC = () => {
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">URL Logo</label>
+                <label className="block text-xs font-semibold text-neutral-300 mb-1">URL Logo trực tiếp (hoặc tải ở trên)</label>
                 <input
                   type="text"
                   value={brandConfig.logoUrl}
@@ -1643,7 +1614,7 @@ export const SettingsView: React.FC = () => {
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">Font chữ</label>
+                <label className="block text-xs font-semibold text-neutral-300 mb-1">Font chữ giao diện</label>
                 <select
                   value={brandConfig.fontFamily}
                   onChange={(e) => setBrandConfig(prev => ({ ...prev, fontFamily: e.target.value }))}
@@ -1668,6 +1639,13 @@ export const SettingsView: React.FC = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* TAB DEBUG LOGS */}
+      {activeTab === 'debug' && (
+        <div className="space-y-6 max-w-5xl">
+          <DebugLogSettings />
         </div>
       )}
 

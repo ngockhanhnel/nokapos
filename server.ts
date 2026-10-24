@@ -34,6 +34,24 @@ async function startServer() {
     res.json({ status: 'ok', service: 'DuckPOS Pro Server', timestamp: new Date().toISOString() });
   });
 
+  // SuperAdmin Telemetry Endpoint: strictly checks admin email header
+  app.get('/api/admin/telemetry', (req, res) => {
+    const adminEmail = req.headers['x-admin-email'];
+    if (adminEmail !== 'ngockhanhsocial@gmail.com') {
+      return res.status(403).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const mem = process.memoryUsage();
+    res.json({
+      success: true,
+      uptimeSeconds: Math.round(process.uptime()),
+      memoryRssMb: Math.round((mem.rss / 1024 / 1024) * 10) / 10,
+      memoryHeapMb: Math.round((mem.heapUsed / 1024 / 1024) * 10) / 10,
+      nodeVersion: process.version,
+      timestamp: new Date().toISOString(),
+    });
+  });
+
   // Mount /api/chat route
   app.use('/api/chat', chatRouter);
 
@@ -176,6 +194,31 @@ async function startServer() {
       );
 
       return res.json({ success: true, message: 'Đã lưu trữ an toàn thông tin khóa bảo mật' });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Server-side Guarded Pricing Endpoint (Strict Owner Check)
+  app.post('/api/shops/:shopId/pricing', async (req, res) => {
+    try {
+      const { shopId } = req.params;
+      const { userRole, pricingConfig } = req.body;
+
+      if (userRole !== 'owner') {
+        return res.status(403).json({
+          success: false,
+          error: 'Chỉ tài khoản Chủ quán mới được thay đổi quy tắc tính giá và biên lợi nhuận.',
+        });
+      }
+
+      const shopRef = doc(db, 'shops', shopId);
+      await updateDoc(shopRef, {
+        pricingConfig,
+        updatedAt: new Date().toISOString(),
+      });
+
+      return res.json({ success: true, message: 'Đã cập nhật cấu hình định giá an toàn trên server' });
     } catch (err: any) {
       return res.status(500).json({ success: false, error: err.message });
     }

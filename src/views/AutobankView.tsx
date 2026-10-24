@@ -36,7 +36,16 @@ import {
   Receipt,
   CheckCircle2,
   Clock,
+  Volume2,
+  VolumeX,
+  Speaker,
 } from 'lucide-react';
+import {
+  SoundboxSettings,
+  getSoundboxSettings,
+  saveSoundboxSettings,
+  testSoundbox,
+} from '@/src/lib/soundbox';
 
 interface AutobankViewProps {
   onNavigateToPos?: () => void;
@@ -60,7 +69,10 @@ export const AutobankView: React.FC<AutobankViewProps> = ({ onNavigateToPos }) =
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<SepayTransaction[]>([]);
   const [loadingTx, setLoadingTx] = useState(true);
-  const [simulating, setSimulating] = useState(false);
+
+  // Soundbox Settings State
+  const [soundboxSettings, setSoundboxSettings] = useState<SoundboxSettings>(getSoundboxSettings());
+  const [isPlayingTestSound, setIsPlayingTestSound] = useState(false);
 
   // Compute webhook URL automatically from app domain
   const webhookUrl =
@@ -156,48 +168,21 @@ export const AutobankView: React.FC<AutobankViewProps> = ({ onNavigateToPos }) =
     }
   };
 
-  // Simulate a test incoming payment webhook
-  const handleSimulateWebhook = async () => {
-    if (!currentShop?.id) return;
-    setSimulating(true);
+  const handleToggleSoundboxSetting = (key: keyof SoundboxSettings, value: any) => {
+    const updated = { ...soundboxSettings, [key]: value };
+    setSoundboxSettings(updated);
+    saveSoundboxSettings(updated);
+  };
 
+  const handleTestSpeaker = async () => {
+    if (isPlayingTestSound) return;
+    setIsPlayingTestSound(true);
     try {
-      const sampleAmount = 150000;
-      const testCode = 'VQ' + Math.floor(1000 + Math.random() * 9000);
-      const testContent = generateTransferMemo(transferPrefix, testCode);
-      const now = new Date().toISOString();
-
-      const newTx: Omit<SepayTransaction, 'id'> = {
-        gateway: currentShop.bankName || 'MBBank',
-        accountNumber: currentShop.bankAccountNumber || '0123456789',
-        transferType: 'in',
-        transferAmount: sampleAmount,
-        content: testContent,
-        referenceCode: 'SIM.' + Date.now().toString().slice(-8),
-        transactionDate: formatDateTime(now),
-        matchedOrderCode: testCode,
-        status: 'matched',
-        createdAt: now,
-      };
-
-      // Add to Firestore transactions
-      await addDoc(collection(db, 'shops', currentShop.id, 'sepayTransactions'), newTx);
-
-      // Trigger Telegram notification if configured
-      if (currentShop.telegramConfig?.notifySepayTransfer) {
-        await sendTelegramNotification(
-          currentShop.telegramConfig,
-          formatSepayTelegramMessage(
-            { id: 'sim', ...newTx } as SepayTransaction,
-            testCode,
-            currentShop.name
-          )
-        );
-      }
+      await testSoundbox(285000);
     } catch (e) {
-      console.error('Simulation error:', e);
+      console.warn('Test speaker error:', e);
     } finally {
-      setSimulating(false);
+      setIsPlayingTestSound(false);
     }
   };
 
@@ -527,14 +512,49 @@ export const AutobankView: React.FC<AutobankViewProps> = ({ onNavigateToPos }) =
               )}
             </button>
 
-            <button
-              onClick={handleSimulateWebhook}
-              disabled={simulating}
-              className="w-full py-2 px-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors border border-neutral-700"
-            >
-              <Send className="w-3.5 h-3.5 text-amber-400" />
-              <span>{simulating ? 'Đang gửi giả lập...' : 'Bấm thử nghiệm giả lập Webhook SePay'}</span>
-            </button>
+            {/* LOA THANH TOÁN THÔNG MINH (SOUNDBOX) */}
+            <div className="pt-2 border-t border-neutral-800/80 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400">
+                  <Speaker className="w-3.5 h-3.5" />
+                  <span>Loa Thanh Toán Thông Minh</span>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-medium">
+                  Chuông + Tiếng Việt
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <label className="flex items-center gap-1.5 cursor-pointer bg-neutral-950 p-2 rounded-lg border border-neutral-800 text-neutral-300">
+                  <input
+                    type="checkbox"
+                    checked={soundboxSettings.enableChime}
+                    onChange={(e) => handleToggleSoundboxSetting('enableChime', e.target.checked)}
+                    className="rounded border-neutral-700 text-amber-500 focus:ring-0 w-3.5 h-3.5"
+                  />
+                  <span>Chuông Ting-Ting</span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer bg-neutral-950 p-2 rounded-lg border border-neutral-800 text-neutral-300">
+                  <input
+                    type="checkbox"
+                    checked={soundboxSettings.enableVoice}
+                    onChange={(e) => handleToggleSoundboxSetting('enableVoice', e.target.checked)}
+                    className="rounded border-neutral-700 text-amber-500 focus:ring-0 w-3.5 h-3.5"
+                  />
+                  <span>Giọng đọc số tiền</span>
+                </label>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleTestSpeaker}
+                disabled={isPlayingTestSound}
+                className="w-full py-2 px-3 bg-neutral-800 hover:bg-neutral-700 text-amber-300 font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all border border-amber-500/30 active:scale-95 disabled:opacity-50"
+              >
+                <Volume2 className={`w-4 h-4 ${isPlayingTestSound ? 'animate-bounce text-amber-400' : ''}`} />
+                <span>{isPlayingTestSound ? 'Loa đang phát thông báo mẫu...' : '🔊 Bấm Nghe Thử Loa Thanh Toán'}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

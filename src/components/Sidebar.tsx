@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuth } from '@/src/context/AuthContext';
+import { isSuperAdmin } from '@/src/lib/adminAuth';
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -18,6 +19,8 @@ import {
   UserCheck,
   CalendarClock,
   MessageSquare,
+  ShieldAlert,
+  Calculator,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -27,7 +30,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, unreadCount = 0 }) => {
-  const { userRole, currentShop } = useAuth();
+  const { userRole, currentShop, user } = useAuth();
 
   const isOwner = userRole === 'owner';
   const isManagerOrOwner = userRole === 'owner' || userRole === 'manager';
@@ -43,12 +46,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, unr
     { id: 'branches', label: 'Quản lý Chi nhánh', icon: Building2, allowed: isOwner },
     { id: 'notifications', label: 'Thông báo & Nhắc việc', icon: Bell, allowed: true, badge: unreadCount },
     { id: 'products', label: 'Sản phẩm', icon: UtensilsCrossed, allowed: true },
+    { id: 'pricing', label: 'Cài đặt Bảng giá', icon: Calculator, allowed: isOwner },
     { id: 'inventory', label: 'Kho hàng', icon: Boxes, allowed: true },
     { id: 'suppliers', label: 'Nhà cung cấp', icon: Truck, allowed: isManagerOrOwner },
     { id: 'orders', label: 'Đơn hàng', icon: Receipt, allowed: true },
     { id: 'expenses', label: 'Sổ quỹ & Chi phí', icon: Wallet, allowed: isManagerOrOwner },
     { id: 'reports', label: 'Báo cáo', icon: BarChart3, allowed: isManagerOrOwner },
     { id: 'staff', label: 'Nhân viên', icon: Users, allowed: isManagerOrOwner },
+    { id: 'admin', label: 'Quản trị Admin', icon: ShieldAlert, allowed: isSuperAdmin(user) },
     { id: 'settings', label: 'Cài đặt quán', icon: Settings, allowed: isOwner },
   ];
 
@@ -56,8 +61,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, unr
     <aside className="hidden lg:flex w-64 bg-neutral-950 border-r border-neutral-800 flex-col shrink-0">
       {/* Brand Header */}
       <div className="h-16 px-5 flex items-center gap-3 border-b border-neutral-800">
-        <div className="w-8 h-8 rounded-lg bg-red-900 flex items-center justify-center text-amber-400 font-bold text-lg">
-          🦆
+        <div className="w-8 h-8 rounded-lg bg-red-900 flex items-center justify-center text-amber-400 font-bold text-lg overflow-hidden shrink-0">
+          {currentShop?.brandConfig?.logoUrl ? (
+            <img
+              src={currentShop.brandConfig.logoUrl}
+              alt={currentShop.name || 'Logo'}
+              className="w-full h-full object-contain p-0.5 rounded-lg"
+            />
+          ) : (
+            '🦆'
+          )}
         </div>
         <div className="overflow-hidden">
           <h1 className="text-sm font-bold text-white tracking-wide truncate">

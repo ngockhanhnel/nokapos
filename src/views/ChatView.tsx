@@ -188,23 +188,23 @@ export const ChatView: React.FC<{ onNavigate: (view: string) => void }> = ({ onN
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
         {messages.map((msg) => (
-          <div key={msg.id} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+          <div key={msg.id} className={`flex gap-3 sm:gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
             <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user' ? 'bg-neutral-800' : 'bg-primary'}`}>
               {msg.role === 'user' ? <span className="text-sm">👤</span> : <Bot className="w-4 h-4 text-white" />}
             </div>
-            <div className={`max-w-[70%] rounded-2xl px-5 py-3 text-sm leading-relaxed shadow-sm ${msg.role === 'user' ? 'bg-primary text-white rounded-br-none' : 'bg-neutral-900 border border-neutral-800 text-neutral-100 rounded-bl-none'}`}>
+            <div className={`max-w-[85%] sm:max-w-[70%] rounded-2xl px-4 sm:px-5 py-3 text-xs sm:text-sm leading-relaxed shadow-sm ${msg.role === 'user' ? 'bg-primary text-white rounded-br-none' : 'bg-neutral-900 border border-neutral-800 text-neutral-100 rounded-bl-none'}`}>
               {msg.text}
             </div>
           </div>
         ))}
         {loading && (
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white">
               <Bot className="w-4 h-4" />
             </div>
-            <div className="bg-neutral-900 border border-neutral-800 rounded-2xl px-5 py-3 text-neutral-400 text-sm flex items-center gap-2">
+            <div className="bg-neutral-900 border border-neutral-800 rounded-2xl px-4 sm:px-5 py-2.5 sm:py-3 text-neutral-400 text-xs sm:text-sm flex items-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin" /> Đang phân tích dữ liệu...
             </div>
           </div>
@@ -213,22 +213,22 @@ export const ChatView: React.FC<{ onNavigate: (view: string) => void }> = ({ onN
       </div>
 
       {/* Input */}
-      <div className="p-6 bg-neutral-900 border-t border-neutral-800">
-        <div className="max-w-4xl mx-auto flex items-center gap-3">
+      <div className="p-3 sm:p-6 pb-20 lg:pb-6 bg-neutral-900 border-t border-neutral-800 shrink-0">
+        <div className="max-w-4xl mx-auto flex items-center gap-2.5 sm:gap-3">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder="Tra cứu doanh thu, tồn kho, đơn hàng..."
-            className="flex-1 bg-neutral-950 border border-neutral-800 rounded-2xl px-5 py-4 text-sm text-white focus:outline-hidden focus:border-primary transition"
+            className="flex-1 bg-neutral-950 border border-neutral-800 rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 sm:py-4 text-xs sm:text-sm text-white focus:outline-hidden focus:border-primary transition"
           />
           <button
             onClick={handleSend}
             disabled={loading || !input.trim()}
-            className="h-14 w-14 rounded-2xl bg-primary hover:bg-red-700 text-white flex items-center justify-center transition shadow-lg shrink-0 disabled:opacity-50"
+            className="h-11 w-11 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl bg-primary hover:bg-red-700 text-white flex items-center justify-center transition shadow-lg shrink-0 disabled:opacity-50 cursor-pointer"
           >
-            <Send className="w-5 h-5" />
+            <Send className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
       </div>

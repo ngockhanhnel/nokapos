@@ -32,10 +32,16 @@ import {
   Filter,
   Sparkles,
   RefreshCw,
+  Calculator,
 } from 'lucide-react';
 
-export const ProductsView: React.FC = () => {
+interface ProductsViewProps {
+  onNavigateToPricing?: () => void;
+}
+
+export const ProductsView: React.FC<ProductsViewProps> = ({ onNavigateToPricing }) => {
   const { currentShop, userRole } = useAuth();
+  const isOwner = userRole === 'owner';
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -417,6 +423,17 @@ export const ProductsView: React.FC = () => {
               >
                 <Trash2 className="w-4 h-4 text-red-400" />
                 Xóa đã chọn ({selectedProductIds.length})
+              </button>
+            )}
+            {isOwner && onNavigateToPricing && (
+              <button
+                type="button"
+                onClick={onNavigateToPricing}
+                className="py-2.5 px-3.5 bg-neutral-800 hover:bg-neutral-700 text-amber-300 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors border border-amber-500/30 shadow-sm"
+              >
+                <Calculator className="w-4 h-4 text-amber-400" />
+                <span className="hidden sm:inline">Cài đặt Bảng giá</span>
+                <span className="sm:hidden">Tính giá</span>
               </button>
             )}
             <button
